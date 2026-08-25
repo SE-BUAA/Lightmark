@@ -24,6 +24,7 @@ import top.ortus.lightmark.backend.dto.module.VacationRefundResponse;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.security.SecureRandom;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -58,6 +59,16 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     private PointsMembershipService pointsMembershipService;
 
+    private Clock clock = Clock.systemDefaultZone();
+
+    void setClock(Clock clock) {
+        this.clock = clock == null ? Clock.systemDefaultZone() : clock;
+    }
+
+    private LocalDateTime now() {
+        return LocalDateTime.now(clock);
+    }
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public TrainOrderResponse createTrainOrder(Long userId, TrainOrderRequest request) {
@@ -80,7 +91,7 @@ public class OrderServiceImpl implements OrderService {
             throw new IllegalArgumentException("余票不足，下单失败");
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = now();
         Order order = new Order();
         order.setOrderNo(generateOrderNo());
         order.setUserId(userId);
@@ -115,7 +126,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         BigDecimal payAmount = calculatePayAmount(originalAmount, request);
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = now();
 
         Order order = new Order();
         order.setOrderNo(generateOrderNo());
@@ -151,7 +162,7 @@ public class OrderServiceImpl implements OrderService {
             throw new IllegalArgumentException("库存不足，下单失败");
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = now();
         BigDecimal unitAmount = BigDecimal.valueOf(product.getPrice()).setScale(2, RoundingMode.HALF_UP);
         BigDecimal baseAmount = unitAmount.multiply(BigDecimal.valueOf(travelerCount)).setScale(2, RoundingMode.HALF_UP);
         BigDecimal insuranceAmount = Boolean.TRUE.equals(request.getCancellationInsurance())
@@ -189,16 +200,16 @@ public class OrderServiceImpl implements OrderService {
         if (order.getStatus() == PAID) {
             return toResponse(order);
         }
-        if (order.getCreateTime().plusMinutes(10).isBefore(LocalDateTime.now())) {
+        if (order.getCreateTime().plusMinutes(10).isBefore(now())) {
             cancelOrder(orderNo);
             throw new IllegalArgumentException("订单已超时取消");
         }
 
         order.setStatus(PAID);
         order.setPaymentMethod("MOCK_PAY");
-        order.setPayTime(LocalDateTime.now());
+        order.setPayTime(now());
         order.setPickupCode(generatePickupCode());
-        order.setUpdateTime(LocalDateTime.now());
+        order.setUpdateTime(now());
         orderMapper.updateById(order);
         pointsMembershipService.awardPoints(String.valueOf(order.getUserId()), String.valueOf(order.getId()), paySource(order.getOrderType()), order.getPayAmount());
         return toResponse(order);
@@ -395,7 +406,7 @@ public class OrderServiceImpl implements OrderService {
             orderMapper.incrementStock(oldProductId, 1);
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = now();
         BigDecimal oldPayAmount = oldOrder.getPayAmount();
         BigDecimal newOriginalAmount = BigDecimal.valueOf(targetProduct.getPrice()).setScale(2, RoundingMode.HALF_UP);
         BigDecimal newPayAmount = newOriginalAmount
@@ -456,7 +467,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         LocalDateTime departureTime = resolveDepartureTime(order);
-        long daysBeforeDeparture = ChronoUnit.DAYS.between(LocalDateTime.now(), departureTime);
+        long daysBeforeDeparture = ChronoUnit.DAYS.between(now(), departureTime);
         boolean fullRefund = daysBeforeDeparture >= 15;
         BigDecimal refundAmount = order.getPayAmount()
             .multiply(fullRefund ? BigDecimal.ONE : BigDecimal.valueOf(0.5))
@@ -858,7 +869,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private String generateOrderNo() {
-        String dateStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String dateStr = now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         String orderNo;
         do {
             orderNo = dateStr + String.format("%06d", RANDOM.nextInt(1_000_000));
