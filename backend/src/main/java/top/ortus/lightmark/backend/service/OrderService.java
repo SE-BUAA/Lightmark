@@ -15,12 +15,11 @@ public interface OrderService {
     TrainOrderResponse createVacationOrder(Long userId, VacationOrderRequest request);
     TrainOrderResponse payOrder(String orderNo);
     TrainRefundResponse refundTrainOrder(String orderNo);
-    TrainRefundResponse refundTrainOrderByPickupCode(String pickupCode);
     VacationRefundResponse refundVacationOrder(String orderNo);
     VacationRefundResponse refundVacationOrderByPickupCode(String pickupCode);
     VacationAssistantResponse generateVacationAssistant(String orderNo);
-    TrainChangePreviewResponse previewTrainChange(String pickupCode);
-    TrainChangeResponse changeTrainOrder(String pickupCode, String targetProductId);
+    TrainChangePreviewResponse previewTrainChange(String orderNo);
+    TrainChangeResponse changeTrainOrder(String orderNo, String targetProductId);
     Order getOrderByNo(String orderNo);
     void cancelOrder(String orderNo);
 }

@@ -80,7 +80,11 @@ export interface OrderDTO {
   pay_time?: string;
   cancel_reason?: string;
   create_time?: string;
+  createEpochMs?: number;
   update_time?: string;
+  updateEpochMs?: number;
+  changed_once?: number;
+  original_order_no?: string;
 }
 
 export interface RefundResultDTO {
@@ -217,8 +221,11 @@ export const deleteTraveler = (id: number): Promise<boolean> => {
  * 获取积分明细
  * GET /api/user/points/logs
  */
-export const getPointsLogs = (): Promise<PageResponse<PointsLogDTO>> => {
-  return http.get<PageResponse<PointsLogDTO>>("/user/points/logs");
+export const getPointsLogs = (params?: {
+  page?: number;
+  size?: number;
+}): Promise<PageResponse<PointsLogDTO>> => {
+  return http.get<PageResponse<PointsLogDTO>>("/user/points/logs", { params });
 };
 
 /**
@@ -235,8 +242,11 @@ export const getLevelUpgradeInfo = (): Promise<UserLevelUpgradeInfoDTO> => {
  * 获取我的订单
  * GET /api/user/orders
  */
-export const getUserOrders = (): Promise<PageResponse<OrderDTO>> => {
-  return http.get<PageResponse<OrderDTO>>("/user/orders");
+export const getUserOrders = (params?: {
+  page?: number;
+  size?: number;
+}): Promise<PageResponse<OrderDTO>> => {
+  return http.get<PageResponse<OrderDTO>>("/user/orders", { params });
 };
 
 /**

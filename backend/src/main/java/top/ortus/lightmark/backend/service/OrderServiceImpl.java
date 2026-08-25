@@ -15,6 +15,7 @@ import top.ortus.lightmark.backend.dto.module.TrainChangePreviewResponse;
 import top.ortus.lightmark.backend.dto.module.TrainChangeResponse;
 import top.ortus.lightmark.backend.dto.module.TrainOrderRequest;
 import top.ortus.lightmark.backend.dto.module.TrainOrderResponse;
+import top.ortus.lightmark.backend.dto.module.TrainSearchRequest;
 import top.ortus.lightmark.backend.dto.module.TrainRefundResponse;
 import top.ortus.lightmark.backend.dto.module.TrainTicketDTO;
 import top.ortus.lightmark.backend.dto.module.VacationAssistantResponse;
@@ -30,6 +31,8 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,10 +66,6 @@ public class OrderServiceImpl implements OrderService {
 
     void setClock(Clock clock) {
         this.clock = clock == null ? Clock.systemDefaultZone() : clock;
-    }
-
-    private LocalDateTime now() {
-        return LocalDateTime.now(clock);
     }
 
     @Override
@@ -224,17 +223,6 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public TrainRefundResponse refundTrainOrderByPickupCode(String pickupCode) {
-        if (pickupCode == null || !pickupCode.matches("^[A-Z0-9]{6}$")) {
-            throw new IllegalArgumentException("请输入6位取票码");
-        }
-        LambdaQueryWrapper<Order> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Order::getPickupCode, pickupCode);
-        return refundTrainOrder(orderMapper.selectOne(wrapper));
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
     public VacationRefundResponse refundVacationOrder(String orderNo) {
         Order order = getOrderByNo(orderNo);
         return refundVacationOrder(order);
@@ -274,7 +262,7 @@ public class OrderServiceImpl implements OrderService {
             destination = "目的地";
         }
         if (date == null || date.isBlank()) {
-            date = LocalDate.now().toString();
+            date = LocalDate.now(clock).toString();
         }
 
         String prompt = "请根据用户已购买的度假产品生成智能行程助手建议。产品为" + valueOrDefault(vacationName, "度假产品")
@@ -336,29 +324,78 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public TrainChangePreviewResponse previewTrainChange(String pickupCode) {
-        Order order = getChangeableOrderByPickupCode(pickupCode);
+    public TrainChangePreviewResponse previewTrainChange(String orderNo) {
+        Order order = validateChangeableOrder(orderNo);
         Map<String, Object> extraInfo = readExtraInfo(order);
         String productId = valueOf(extraInfo.get("productId"));
         String startStation = valueOf(extraInfo.get("startStation"));
         String endStation = valueOf(extraInfo.get("endStation"));
         String seatType = valueOf(extraInfo.get("seatType"));
+        String origDate = valueOf(extraInfo.get("date"));
+        String origTrain = valueOf(extraInfo.get("trainName"));
 
+        // Get candidates from MCP/remote search for the same route
+        List<Product> candidates = new ArrayList<>();
+        try {
+            TrainSearchRequest searchReq = new TrainSearchRequest();
+            searchReq.setStartStation(startStation);
+            searchReq.setEndStation(endStation);
+            // Search the next 14 days for availability
+            java.time.LocalDate today = java.time.LocalDate.now(clock);
+            for (int i = 0; i < 14; i++) {
+                String date = today.plusDays(i).toString();
+                searchReq.setDate(date);
+                try {
+                    List<TrainTicketDTO> tickets = trainService.search(searchReq);
+                    for (TrainTicketDTO ticket : tickets) {
+                        if (ticket.getId() != null && !ticket.getId().equals(productId)) {
+                            Product p = new Product();
+                            p.setId(ticket.getId());
+                            p.setName(ticket.getName());
+                            p.setPrice(ticket.getPrice());
+                            p.setStock(1);
+                            p.setStatus(1);
+                            // encode ticket into extra for the frontend
+                            Map<String, Object> extra = new HashMap<>(ticket.getExtra() == null ? Map.of() : ticket.getExtra());
+                            extra.put("date", date);
+                            extra.put("seatType", seatType);
+                            try {
+                                p.setExtra(extra);
+                            } catch (Exception ignored) {}
+                            // Check seat availability
+                            if (ticket.getSeats() != null && !ticket.getSeats().isEmpty()) {
+                                Integer available = ticket.getSeats().get(seatType);
+                                if (available != null && available > 0) {
+                                    candidates.add(p);
+                                }
+                            } else {
+                                candidates.add(p);
+                            }
+                        }
+                    }
+                } catch (Exception ignored) {}
+                if (candidates.size() >= 50) break; // limit results
+            }
+        } catch (Exception ignored) {}
+
+        // Also include DB products as fallback
         LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Product::getProductType, "TRAIN")
             .eq(Product::getStatus, 1)
             .ne(Product::getId, productId)
             .orderByAsc(Product::getId);
-        List<Product> candidates = productMapper.selectList(wrapper).stream()
-            .filter(product -> matchesExtra(product, "start_station", startStation))
-            .filter(product -> matchesExtra(product, "end_station", endStation))
-            .filter(product -> hasAvailableTicket(product))
-            .filter(product -> hasSeatType(product, seatType))
-            .toList();
+        for (Product dbProduct : productMapper.selectList(wrapper)) {
+            if (matchesExtra(dbProduct, "start_station", startStation) && matchesExtra(dbProduct, "end_station", endStation)
+                && hasAvailableTicket(dbProduct) && hasSeatType(dbProduct, seatType)) {
+                // deduplicate by name
+                boolean dup = candidates.stream().anyMatch(c -> c.getName().equals(dbProduct.getName()) && c.getId().equals(dbProduct.getId()));
+                if (!dup) candidates.add(dbProduct);
+            }
+        }
 
         return new TrainChangePreviewResponse(
             order.getOrderNo(),
-            valueOf(extraInfo.get("trainName")),
+            origTrain,
             startStation,
             endStation,
             seatType,
@@ -368,71 +405,142 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public TrainChangeResponse changeTrainOrder(String pickupCode, String targetProductId) {
-        Order oldOrder = getChangeableOrderByPickupCode(pickupCode);
+    public TrainChangeResponse changeTrainOrder(String orderNo, String targetProductId) {
+        Order oldOrder = validateChangeableOrder(orderNo);
         if (targetProductId == null || targetProductId.isBlank()) {
             throw new IllegalArgumentException("请选择改签车次");
         }
 
         Map<String, Object> oldExtraInfo = readExtraInfo(oldOrder);
         String oldProductId = valueOf(oldExtraInfo.get("productId"));
-        String startStation = valueOf(oldExtraInfo.get("startStation"));
-        String endStation = valueOf(oldExtraInfo.get("endStation"));
-        String seatType = valueOf(oldExtraInfo.get("seatType"));
+
         if (targetProductId.equals(oldProductId)) {
             throw new IllegalArgumentException("不能改签到同一车次");
         }
 
-        Product targetProduct = productMapper.selectById(targetProductId);
-        if (targetProduct == null || !"TRAIN".equals(targetProduct.getProductType()) || !Integer.valueOf(1).equals(targetProduct.getStatus())) {
-            throw new IllegalArgumentException("改签车次不存在或已下架");
-        }
-        if (!matchesExtra(targetProduct, "start_station", startStation) || !matchesExtra(targetProduct, "end_station", endStation)) {
-            throw new IllegalArgumentException("只能改签出发站和到达站相同的车次");
-        }
-        if (!hasSeatType(targetProduct, seatType)) {
-            throw new IllegalArgumentException("新车次无原座位类型");
-        }
-
-        int markChanged = orderMapper.markChangedOrder(oldOrder.getOrderNo(), "已改签，原取票码已失效");
-        if (markChanged == 0) {
-            throw new IllegalArgumentException("该订单已改签或状态已变化");
-        }
-        int stockChanged = orderMapper.decrementStock(targetProductId, 1);
-        if (stockChanged == 0) {
-            throw new IllegalArgumentException("新车次余票不足");
-        }
-        if (oldProductId != null && !oldProductId.isBlank()) {
-            orderMapper.incrementStock(oldProductId, 1);
-        }
-
         LocalDateTime now = now();
         BigDecimal oldPayAmount = oldOrder.getPayAmount();
-        BigDecimal newOriginalAmount = BigDecimal.valueOf(targetProduct.getPrice()).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal newPayAmount = newOriginalAmount
-            .multiply(BigDecimal.valueOf(readDiscountRate(oldExtraInfo)))
-            .setScale(2, RoundingMode.HALF_UP);
-        BigDecimal difference = newPayAmount.subtract(oldPayAmount).setScale(2, RoundingMode.HALF_UP);
-
+        BigDecimal newOriginalAmount;
+        BigDecimal newPayAmount;
         Order newOrder = new Order();
-        newOrder.setOrderNo(generateOrderNo());
-        newOrder.setUserId(oldOrder.getUserId());
-        newOrder.setOrderType("TRAIN");
-        newOrder.setTotalAmount(newOriginalAmount);
-        newOrder.setPayAmount(newPayAmount);
-        newOrder.setPointsDeduct(0);
-        newOrder.setPaymentMethod("CHANGE_PAY");
-        newOrder.setSource(oldOrder.getSource());
-        newOrder.setStatus(PAID);
-        newOrder.setPayTime(now);
-        newOrder.setPickupCode(generatePickupCode());
-        newOrder.setChangedOnce(1);
-        newOrder.setOriginalOrderNo(oldOrder.getOrderNo());
-        newOrder.setExtraInfo(writeChangedExtraInfo(targetProduct, oldExtraInfo, oldOrder.getOrderNo(), difference));
-        newOrder.setCreateTime(now);
-        newOrder.setUpdateTime(now);
-        orderMapper.insert(newOrder);
 
+        boolean isRemote = targetProductId.startsWith("MCP:");
+
+        boolean needsPay;
+
+        if (isRemote) {
+            // --- Remote (MCP) change path ---
+            TrainTicketDTO ticket = trainService.searchById(targetProductId);
+            String seatType = valueOf(oldExtraInfo.get("seatType"));
+            if (ticket.getSeats() != null && !ticket.getSeats().isEmpty()) {
+                Integer available = ticket.getSeats().get(seatType);
+                if (available == null || available <= 0) {
+                    throw new IllegalArgumentException("新车次所选座位类型余票不足");
+                }
+            }
+            newOriginalAmount = BigDecimal.valueOf(
+                ticket.getPrices() == null ? ticket.getPrice() : ticket.getPrices().getOrDefault(seatType, ticket.getPrice())
+            ).setScale(2, RoundingMode.HALF_UP);
+            newPayAmount = newOriginalAmount
+                .multiply(BigDecimal.valueOf(readDiscountRate(oldExtraInfo)))
+                .setScale(2, RoundingMode.HALF_UP);
+
+            needsPay = newPayAmount.compareTo(oldPayAmount) > 0;
+
+            int markChanged = orderMapper.markChangedOrder(oldOrder.getOrderNo(), "已改签至远程车次");
+            if (markChanged == 0) {
+                throw new IllegalArgumentException("该订单已改签或状态已变化");
+            }
+
+            newOrder.setOrderNo(generateOrderNo());
+            newOrder.setUserId(oldOrder.getUserId());
+            newOrder.setOrderType("TRAIN");
+            newOrder.setTotalAmount(newOriginalAmount);
+            newOrder.setPayAmount(newPayAmount);
+            newOrder.setPointsDeduct(0);
+            newOrder.setPaymentMethod("CHANGE_PAY");
+            newOrder.setSource(oldOrder.getSource());
+            newOrder.setStatus(needsPay ? PENDING : PAID);
+            if (!needsPay) newOrder.setPayTime(now);
+            newOrder.setPayDeadline(needsPay ? now.plusMinutes(10) : null);
+            newOrder.setPickupCode(generatePickupCode());
+            newOrder.setChangedOnce(1);
+            newOrder.setOriginalOrderNo(oldOrder.getOrderNo());
+
+            Map<String, Object> newExtra = new LinkedHashMap<>(oldExtraInfo);
+            newExtra.put("oldOrderNo", oldOrder.getOrderNo());
+            newExtra.put("newTicketId", targetProductId);
+            newExtra.put("newTrainName", ticket.getName());
+            newExtra.put("newPrice", newPayAmount);
+            java.util.Map<String, Object> ticketExtra = ticket.getExtra() == null ? Map.of() : ticket.getExtra();
+            newExtra.put("newDate", ticketExtra.getOrDefault("date", ""));
+            newExtra.put("newDepartTime", ticketExtra.getOrDefault("depart_time", ""));
+            newExtra.put("newArriveTime", ticketExtra.getOrDefault("arrive_time", ""));
+            try {
+                newOrder.setExtraInfo(objectMapper.writeValueAsString(newExtra));
+            } catch (Exception ex) {
+                throw new IllegalArgumentException("改签信息序列化失败");
+            }
+            newOrder.setCreateTime(now);
+            newOrder.setUpdateTime(now);
+            orderMapper.insert(newOrder);
+        } else {
+            // --- Local DB product change path ---
+            String startStation = valueOf(oldExtraInfo.get("startStation"));
+            String endStation = valueOf(oldExtraInfo.get("endStation"));
+            String seatType = valueOf(oldExtraInfo.get("seatType"));
+
+            Product targetProduct = productMapper.selectById(targetProductId);
+            if (targetProduct == null || !"TRAIN".equals(targetProduct.getProductType()) || !Integer.valueOf(1).equals(targetProduct.getStatus())) {
+                throw new IllegalArgumentException("改签车次不存在或已下架");
+            }
+            if (!matchesExtra(targetProduct, "start_station", startStation) || !matchesExtra(targetProduct, "end_station", endStation)) {
+                throw new IllegalArgumentException("只能改签出发站和到达站相同的车次");
+            }
+            if (!hasSeatType(targetProduct, seatType)) {
+                throw new IllegalArgumentException("新车次无原座位类型");
+            }
+
+            newOriginalAmount = BigDecimal.valueOf(targetProduct.getPrice()).setScale(2, RoundingMode.HALF_UP);
+            newPayAmount = newOriginalAmount
+                .multiply(BigDecimal.valueOf(readDiscountRate(oldExtraInfo)))
+                .setScale(2, RoundingMode.HALF_UP);
+
+            needsPay = newPayAmount.compareTo(oldPayAmount) > 0;
+
+            int markChanged = orderMapper.markChangedOrder(oldOrder.getOrderNo(), "已改签");
+            if (markChanged == 0) {
+                throw new IllegalArgumentException("该订单已改签或状态已变化");
+            }
+            int stockChanged = orderMapper.decrementStock(targetProductId, 1);
+            if (stockChanged == 0) {
+                throw new IllegalArgumentException("新车次余票不足");
+            }
+            if (oldProductId != null && !oldProductId.isBlank()) {
+                orderMapper.incrementStock(oldProductId, 1);
+            }
+
+            newOrder.setOrderNo(generateOrderNo());
+            newOrder.setUserId(oldOrder.getUserId());
+            newOrder.setOrderType("TRAIN");
+            newOrder.setTotalAmount(newOriginalAmount);
+            newOrder.setPayAmount(newPayAmount);
+            newOrder.setPointsDeduct(0);
+            newOrder.setPaymentMethod("CHANGE_PAY");
+            newOrder.setSource(oldOrder.getSource());
+            newOrder.setStatus(needsPay ? PENDING : PAID);
+            if (!needsPay) newOrder.setPayTime(now);
+            newOrder.setPayDeadline(needsPay ? now.plusMinutes(10) : null);
+            newOrder.setPickupCode(generatePickupCode());
+            newOrder.setChangedOnce(1);
+            newOrder.setOriginalOrderNo(oldOrder.getOrderNo());
+            newOrder.setExtraInfo(writeChangedExtraInfo(targetProduct, oldExtraInfo, oldOrder.getOrderNo(), newPayAmount.subtract(oldPayAmount)));
+            newOrder.setCreateTime(now);
+            newOrder.setUpdateTime(now);
+            orderMapper.insert(newOrder);
+        }
+
+        BigDecimal difference = newPayAmount.subtract(oldPayAmount).setScale(2, RoundingMode.HALF_UP);
         String differenceType = difference.compareTo(BigDecimal.ZERO) > 0 ? "PAY" : difference.compareTo(BigDecimal.ZERO) < 0 ? "REFUND" : "NONE";
         BigDecimal displayDifference = difference.abs();
         String message = switch (differenceType) {
@@ -722,15 +830,10 @@ public class OrderServiceImpl implements OrderService {
         }
     }
 
-    private Order getChangeableOrderByPickupCode(String pickupCode) {
-        if (pickupCode == null || !pickupCode.matches("^[A-Z0-9]{6}$")) {
-            throw new IllegalArgumentException("请输入6位取票码");
-        }
-        LambdaQueryWrapper<Order> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Order::getPickupCode, pickupCode);
-        Order order = orderMapper.selectOne(wrapper);
+    private Order validateChangeableOrder(String orderNo) {
+        Order order = getOrderByNo(orderNo);
         if (order == null) {
-            throw new IllegalArgumentException("取票码无效或已失效");
+            throw new IllegalArgumentException("订单不存在");
         }
         if (!"TRAIN".equals(order.getOrderType())) {
             throw new IllegalArgumentException("只能改签火车票订单");
@@ -858,12 +961,19 @@ public class OrderServiceImpl implements OrderService {
 
     private TrainOrderResponse toResponse(Order order) {
         LocalDateTime createTime = order.getCreateTime();
+        LocalDateTime deadline = order.getPayDeadline() == null ? (createTime == null ? null : createTime.plusMinutes(10)) : order.getPayDeadline();
+        // Convert to epoch millis so countdown is timezone-agnostic
+        Long expireEpochMs = null;
+        if (deadline != null) {
+            expireEpochMs = deadline.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+        }
         return new TrainOrderResponse(
             order.getOrderNo(),
             order.getStatus(),
             order.getPayAmount(),
             createTime,
-            order.getPayDeadline() == null ? (createTime == null ? null : createTime.plusMinutes(10)) : order.getPayDeadline(),
+            deadline,
+            expireEpochMs,
             order.getPickupCode()
         );
     }
@@ -888,5 +998,9 @@ public class OrderServiceImpl implements OrderService {
             code = sb.toString();
         } while (orderMapper.countByPickupCode(code) > 0);
         return code;
+    }
+
+    private LocalDateTime now() {
+        return LocalDateTime.now(clock);
     }
 }

@@ -173,10 +173,23 @@ public class UserController {
     @GetMapping("/orders")
     public ApiResponse<PageResponse<OrderDTO>> orders(@RequestHeader("Authorization") String authorization,
                                                       @RequestParam Map<String, String> params) {
+        Map<String, String> pageParams = new java.util.HashMap<>();
+        String pageStr = params.get("page");
+        String sizeStr = params.get("size");
+        if (pageStr != null) pageParams.put("page", pageStr);
+        if (sizeStr != null) pageParams.put("size", sizeStr);
+
         Map<String, String> filters = new java.util.HashMap<>(params);
+        filters.remove("page");
+        filters.remove("size");
         filters.put("user_id", resolveUserId(authorization));
         List<OrderDTO> items = genericCrudService.listTyped("orders", filters, OrderDTO.class);
-        return ApiResponse.ok(toPage(items, params));
+        items.sort((a, b) -> {
+            String ta = a.getCreate_time() == null ? "" : a.getCreate_time().toString();
+            String tb = b.getCreate_time() == null ? "" : b.getCreate_time().toString();
+            return tb.compareTo(ta);
+        });
+        return ApiResponse.ok(toPage(items, pageParams));
     }
 
     @GetMapping("/orders/{orderNo}")
@@ -225,8 +238,14 @@ public class UserController {
 
     private <T> PageResponse<T> toPage(List<T> items, Map<String, String> params) {
         int page = parseInt(params.get("page"), 1);
-        int size = parseInt(params.get("size"), items == null ? 0 : items.size());
-        return new PageResponse<>(items == null ? 0 : items.size(), page, size, items);
+        int size = parseInt(params.get("size"), 10);
+        size = Math.max(1, Math.min(size, 100));
+        long total = items == null ? 0 : items.size();
+        List<T> sliced = items == null ? List.of() : items.stream()
+            .skip((long) (page - 1) * size)
+            .limit(size)
+            .toList();
+        return new PageResponse<>(total, page, size, sliced);
     }
 
     private int parseInt(String value, int fallback) {

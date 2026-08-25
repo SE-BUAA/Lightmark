@@ -16,5 +16,6 @@ public class TrainOrderResponse {
     private BigDecimal payAmount;
     private LocalDateTime createTime;
     private LocalDateTime expireTime;
+    private Long expireEpochMs;
     private String pickupCode;
 }

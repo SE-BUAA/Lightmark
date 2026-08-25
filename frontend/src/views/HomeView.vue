@@ -217,37 +217,37 @@ const destinations = [
     name: "上海",
     tag: "摩登都市",
     desc: "外滩夜景、海派美食与商圈购物，一城解锁都市旅行与周边度假。",
-    img: "https://images.unsplash.com/photo-1537531383499-f01f8b3a03a4?w=900&q=80",
+    img: "https://6a2a86f788751837051fd603.imgix.net/city/physion-building-5525415_1920.jpg?auto=format&fit=fill&w=900&q=80",
   },
   {
     name: "北京",
     tag: "古都风华",
     desc: "故宫、长城与胡同文化串联历史纵深，适合亲子与文化深度游。",
-    img: "https://images.unsplash.com/photo-1559616609-0a3b5c0c6e3b?w=900&q=80",
+    img: "https://6a2a86f788751837051fd603.imgix.net/city/jplenio-temple-of-heaven-3675835_1920.jpg?auto=format&fit=fill&w=900&q=80",
   },
   {
     name: "三亚",
     tag: "热带海滨",
     desc: "海岛度假、酒店套餐与亲子项目丰富，是放松型旅行热门首选。",
-    img: "https://images.unsplash.com/photo-1540202404-a2f29016b523?w=900&q=80",
+    img: "https://6a2a86f788751837051fd603.imgix.net/city/meisheng63-scenery-2320473_1920.jpg?auto=format&fit=fill&w=900&q=80",
   },
   {
     name: "成都",
     tag: "美食之都",
     desc: "慢节奏街巷、川味餐馆和周边熊猫基地，适合周末与长线休闲游。",
-    img: "https://images.unsplash.com/photo-1590736969955-71cc94901105?w=900&q=80",
+    img: "https://6a2a86f788751837051fd603.imgix.net/city/airtank-xue-tao-6910634_1920.jpg?auto=format&fit=fill&w=900&q=80",
   },
   {
     name: "杭州",
     tag: "江南水乡",
     desc: "西湖风景、茶文化与精品民宿结合，适合轻度假和情侣出行。",
-    img: "https://images.unsplash.com/photo-1599571234909-29ed5a4b4eb9?w=900&q=80",
+    img: "https://6a2a86f788751837051fd603.imgix.net/city/xiaohhei-nature-7075743_1920.jpg?auto=format&fit=fill&w=900&q=80",
   },
   {
     name: "西安",
     tag: "千年古都",
     desc: "历史遗址与城市夜游兼具，火车与度假产品都适合串联多日线路。",
-    img: "https://images.unsplash.com/photo-1582555172866-f73bb12e2e1e?w=900&q=80",
+    img: "https://6a2a86f788751837051fd603.imgix.net/city/zhou-you-zhong-guo-daming-palace-8268910_1920.jpg?auto=format&fit=fill&w=900&q=80",
   },
 ];
 </script>

@@ -2,6 +2,7 @@ package top.ortus.lightmark.backend.dto.module;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 public class OrderDTO {
     private String id;
@@ -141,5 +142,13 @@ public class OrderDTO {
 
     public void setUpdate_time(LocalDateTime update_time) {
         this.update_time = update_time;
+    }
+
+    public Long getCreateEpochMs() {
+        return create_time == null ? null : create_time.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+    }
+
+    public Long getUpdateEpochMs() {
+        return update_time == null ? null : update_time.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
     }
 }

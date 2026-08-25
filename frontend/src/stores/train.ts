@@ -6,6 +6,7 @@ interface TrainState {
   trainsList: TrainProduct[]
   selectedTrain: TrainProduct | null
   currentOrder: TrainOrderResponse | null
+  currentOrders: TrainOrderResponse[]
 }
 
 export const useTrainStore = defineStore('train', {
@@ -19,7 +20,8 @@ export const useTrainStore = defineStore('train', {
     },
     trainsList: [],
     selectedTrain: null,
-    currentOrder: null
+    currentOrder: null,
+    currentOrders: []
   }),
   actions: {
     setSearchParams(params: Partial<TrainSearchPayload>) {
@@ -33,10 +35,16 @@ export const useTrainStore = defineStore('train', {
     },
     setCurrentOrder(order: TrainOrderResponse | null) {
       this.currentOrder = order
+      this.currentOrders = order ? [order] : []
+    },
+    setCurrentOrders(orders: TrainOrderResponse[]) {
+      this.currentOrders = orders
+      this.currentOrder = orders.length > 0 ? orders[0] : null
     },
     resetOrderFlow() {
       this.selectedTrain = null
       this.currentOrder = null
+      this.currentOrders = []
     }
   }
 })

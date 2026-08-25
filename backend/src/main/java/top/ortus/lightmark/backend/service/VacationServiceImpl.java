@@ -135,7 +135,8 @@ public class VacationServiceImpl implements VacationService{
         LambdaQueryWrapper<Product> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Product::getProductType, "VACATION")
             .eq(Product::getStatus, 1)
-            .orderByAsc(Product::getId);
+            .orderByAsc(Product::getId)
+            .last("LIMIT 200");
         List<Product> products = productMapper.selectList(queryWrapper);
         products.forEach(this::normalizeVacationExtra);
         return products;

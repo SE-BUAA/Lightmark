@@ -4,6 +4,6 @@ import lombok.Data;
 
 @Data
 public class TrainChangeConfirmRequest {
-    private String pickupCode;
+    private String orderNo;
     private String targetProductId;
 }

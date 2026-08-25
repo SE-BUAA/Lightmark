@@ -65,11 +65,6 @@ public class OrderController {
         return ApiResponse.ok(orderService.refundTrainOrder(orderNo));
     }
 
-    @PostMapping("/train/refund")
-    public ApiResponse<TrainRefundResponse> refundTrainOrderByPickupCode(@RequestParam String pickupCode) {
-        return ApiResponse.ok(orderService.refundTrainOrderByPickupCode(pickupCode));
-    }
-
     @PostMapping("/vacation/{orderNo}/refund")
     public ApiResponse<VacationRefundResponse> refundVacationOrder(@PathVariable String orderNo) {
         return ApiResponse.ok(orderService.refundVacationOrder(orderNo));
@@ -85,14 +80,15 @@ public class OrderController {
         return ApiResponse.ok(orderService.generateVacationAssistant(orderNo));
     }
 
-    @GetMapping("/train/change")
-    public ApiResponse<TrainChangePreviewResponse> previewTrainChange(@RequestParam String pickupCode) {
-        return ApiResponse.ok(orderService.previewTrainChange(pickupCode));
+    @GetMapping("/train/{orderNo}/change")
+    public ApiResponse<TrainChangePreviewResponse> previewTrainChange(@PathVariable String orderNo) {
+        return ApiResponse.ok(orderService.previewTrainChange(orderNo));
     }
 
-    @PostMapping("/train/change")
-    public ApiResponse<TrainChangeResponse> changeTrainOrder(@RequestBody TrainChangeConfirmRequest request) {
-        return ApiResponse.ok(orderService.changeTrainOrder(request.getPickupCode(), request.getTargetProductId()));
+    @PostMapping("/train/{orderNo}/change")
+    public ApiResponse<TrainChangeResponse> changeTrainOrder(@PathVariable String orderNo,
+                                                             @RequestBody TrainChangeConfirmRequest request) {
+        return ApiResponse.ok(orderService.changeTrainOrder(orderNo, request.getTargetProductId()));
     }
 
     @GetMapping("/{orderNo}")

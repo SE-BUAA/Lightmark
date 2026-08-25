@@ -207,7 +207,7 @@ class OrderServiceImplUnitTest {
 
     @Test
     void refundTrainOrderByPickupCodeShouldRejectInvalidCodeBeforeDatabaseQuery() {
-        assertThatThrownBy(() -> service.refundTrainOrderByPickupCode("BAD"))
+        assertThatThrownBy(() -> service.refundVacationOrderByPickupCode("BAD"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessage("请输入6位取票码");
 

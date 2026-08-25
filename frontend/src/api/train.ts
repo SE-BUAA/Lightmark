@@ -69,7 +69,13 @@ export interface TrainOrderResponse {
   payAmount: number
   createTime: string
   expireTime: string
+  expireEpochMs?: number
   pickupCode?: string
+}
+
+export interface TrainBatchOrderResponse {
+  orders: TrainOrderResponse[]
+  totalAmount: number
 }
 
 export interface TrainRefundResponse {
@@ -143,21 +149,13 @@ export function refundTrainOrder(orderNo: string) {
   return http.post<TrainRefundResponse>(`/orders/train/${orderNo}/refund`)
 }
 
-export function refundTrainOrderByPickupCode(pickupCode: string) {
-  return http.post<TrainRefundResponse>('/orders/train/refund', undefined, {
-    params: { pickupCode }
-  })
+
+export function previewTrainChange(orderNo: string) {
+  return http.get<TrainChangePreviewResponse>(`/orders/train/${orderNo}/change`)
 }
 
-export function previewTrainChange(pickupCode: string) {
-  return http.get<TrainChangePreviewResponse>('/orders/train/change', {
-    params: { pickupCode }
-  })
-}
-
-export function changeTrainOrder(pickupCode: string, targetProductId: string) {
-  return http.post<TrainChangeResponse>('/orders/train/change', {
-    pickupCode,
+export function changeTrainOrder(orderNo: string, targetProductId: string) {
+  return http.post<TrainChangeResponse>(`/orders/train/${orderNo}/change`, {
     targetProductId
   })
 }

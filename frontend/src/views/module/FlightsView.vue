@@ -519,8 +519,35 @@
               </el-button>
               <el-button v-if="currentOrderNo" type="success" @click="payOrder">模拟支付</el-button>
               <el-button v-if="currentOrderNo" @click="cancelOrder">取消</el-button>
+              <el-button v-if="orderStatus?.status === 1" type="primary" @click="openChangeDialog">改签</el-button>
               <el-button v-if="currentOrderNo" type="warning" @click="refundOrder">退款</el-button>
             </div>
+
+            <el-dialog v-model="showChangeDialog" title="机票改签" width="600px" destroy-on-close>
+              <el-alert v-if="changeResult" :closable="false" type="success" :title="changeResult.message" />
+              <template v-if="!changeResult">
+                <p class="change-hint">从以下航班中选择改签目标：</p>
+                <el-table :data="changeableFlights" stripe max-height="360">
+                  <el-table-column label="航班" min-width="140">
+                    <template #default="{ row }">{{ row.name }} / {{ row.extraInfo.airline }}</template>
+                  </el-table-column>
+                  <el-table-column label="时间" min-width="130">
+                    <template #default="{ row }">{{ row.extraInfo.departureTime }} - {{ row.extraInfo.arrivalTime }}</template>
+                  </el-table-column>
+                  <el-table-column label="价格" width="80">
+                    <template #default="{ row }">¥{{ row.price }}</template>
+                  </el-table-column>
+                  <el-table-column label="操作" width="80">
+                    <template #default="{ row }">
+                      <el-button size="small" type="primary" :loading="changing" @click="handleChangeFlight(row)">改签</el-button>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </template>
+              <template #footer v-if="changeResult">
+                <el-button type="primary" @click="showChangeDialog = false">确定</el-button>
+              </template>
+            </el-dialog>
           </template>
           <el-empty v-else description="选择一个航班后可预览订单" />
         </aside>
@@ -1306,6 +1333,34 @@ async function refundOrder() {
   orderStatus.value = { status: result.status, statusText: result.statusText, paymentMethod: "" };
   ElMessage.success(`退款金额 ￥${result.refundAmount}`);
   await searchFlights({ autoSelectFirst: false });
+}
+
+const showChangeDialog = ref(false);
+const changing = ref(false);
+const changeResult = ref<{ message: string; oldOrderNo: string; newOrderNo: string; oldPayAmount: number; newPayAmount: number; difference: number } | null>(null);
+
+const changeableFlights = computed(() => {
+  return flights.value.filter(f => f.id !== selectedFlight.value?.id);
+});
+
+function openChangeDialog() {
+  changeResult.value = null;
+  showChangeDialog.value = true;
+}
+
+async function handleChangeFlight(target: FlightProduct) {
+  if (!currentOrderNo.value) return;
+  changing.value = true;
+  try {
+    const result = await http.post<typeof changeResult.value>(`/orders/${currentOrderNo.value}/change`, { productId: target.id });
+    changeResult.value = result;
+    ElMessage.success(result?.message || "改签成功");
+    await refreshOrderStatus();
+  } catch {
+    ElMessage.error("改签失败，请稍后重试");
+  } finally {
+    changing.value = false;
+  }
 }
 
 function explainRefundPolicy() {
@@ -3679,6 +3734,12 @@ function airportLabel(flight: FlightProduct, direction: "departure" | "arrival")
   gap: 10px;
   grid-template-columns: repeat(2, 1fr);
   margin-top: 18px;
+}
+
+.change-hint {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-bottom: 12px;
 }
 
 .order-panel {

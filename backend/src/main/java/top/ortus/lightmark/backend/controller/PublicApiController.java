@@ -173,6 +173,16 @@ public class PublicApiController {
         return ApiResponse.ok(flightSearchService.refundOrder(orderNo));
     }
 
+    @PostMapping("/orders/{orderNo}/change")
+    public ApiResponse<Map<String, Object>> changeFlightOrder(@PathVariable String orderNo,
+                                                              @RequestBody Map<String, Object> body) {
+        String newProductId = body == null ? null : String.valueOf(body.get("productId"));
+        if (newProductId == null || newProductId.isBlank()) {
+            return ApiResponse.error(400, "new productId is required");
+        }
+        return ApiResponse.ok(flightSearchService.changeFlightOrder(orderNo, newProductId));
+    }
+
     @GetMapping("/orders/{orderNo}/status")
     public ApiResponse<Map<String, Object>> orderStatus(@PathVariable String orderNo) {
         return ApiResponse.ok(flightSearchService.orderStatus(orderNo));

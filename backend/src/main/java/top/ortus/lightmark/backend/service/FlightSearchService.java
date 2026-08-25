@@ -298,6 +298,93 @@ public class FlightSearchService {
     }
 
     @Transactional
+    public Map<String, Object> changeFlightOrder(String orderNo, String newProductId) {
+        OrderDTO order = findOrder(orderNo);
+        if (order.getStatus() != STATUS_PAID) {
+            throw new ApiException(409, "only paid orders can be changed");
+        }
+
+        ProductDTO newFlight = getDetail(newProductId);
+        if (newFlight == null || newFlight.getStatus() != 1) {
+            throw new ApiException(404, "target flight not available");
+        }
+
+        Map<String, Object> oldDetail = flightOrderDetail(Long.parseLong(order.getId()));
+        ProductDTO oldFlight = getDetail(asString(oldDetail.get("product_id")));
+        Map<String, Object> oldExtra = extra(oldFlight);
+        String oldFlightNo = textField(oldFlight, "flightNo", "flight_no");
+        String newFlightNo = textField(newFlight, "flightNo", "flight_no");
+
+        // Restore stock for old order
+        restoreStock(order);
+
+        // Create a new order for the new flight
+        int passengerCount = 1;
+        LocalDateTime now = LocalDateTime.now();
+        String newOrderNo = "F" + now.format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS"));
+
+        int stockUpdated = jdbcTemplate.update(
+                "update product set stock = stock - ?, sold_count = sold_count + ?, update_time = ? where id = ? and stock >= ?",
+                passengerCount, passengerCount, now, newFlight.getId(), passengerCount
+        );
+        if (stockUpdated == 0) {
+            throw new ApiException(409, "target flight stock is insufficient");
+        }
+
+        BigDecimal oldPayAmount = order.getPay_amount() == null ? BigDecimal.ZERO : order.getPay_amount();
+        BigDecimal newPrice = newFlight.getPrice().setScale(2, RoundingMode.HALF_UP);
+        BigDecimal difference = newPrice.subtract(oldPayAmount).setScale(2, RoundingMode.HALF_UP);
+
+        jdbcTemplate.update(
+                "insert into `orders` (order_no, user_id, order_type, total_amount, points_deduct, pay_amount, payment_method, source, status, pay_time, create_time, update_time) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                newOrderNo,
+                order.getUser_id(),
+                "FLIGHT",
+                newPrice,
+                0,
+                newPrice,
+                "CHANGE_PAY",
+                "WEB",
+                STATUS_PAID,
+                now, now, now
+        );
+
+        Long newOrderId = jdbcTemplate.queryForObject("select id from `orders` where order_no = ?", Long.class, newOrderNo);
+        Map<String, Object> newExtra = extra(newFlight);
+        jdbcTemplate.update(
+                "insert into flight_order_detail (order_id, product_id, flight_no, departure_date, passenger_list, baggage, insurance) values (?, ?, ?, ?, ?, ?, ?)",
+                newOrderId,
+                newFlight.getId(),
+                newFlightNo,
+                java.sql.Date.valueOf(parseDate(asString(first(newExtra, "departureDate", "departure_date", "date")), LocalDate.now())),
+                "[]",
+                asString(first(newExtra, "baggage")),
+                0
+        );
+
+        // Mark old order as changed
+        jdbcTemplate.update(
+                "update `orders` set status = ?, cancel_reason = ?, update_time = ? where order_no = ?",
+                5, "已改签至 " + newOrderNo, now, orderNo
+        );
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("oldOrderNo", orderNo);
+        result.put("newOrderNo", newOrderNo);
+        result.put("oldPayAmount", oldPayAmount);
+        result.put("newPayAmount", newPrice);
+        result.put("difference", difference);
+        result.put("oldFlightNo", oldFlightNo);
+        result.put("newFlightNo", newFlightNo);
+        result.put("message", difference.compareTo(BigDecimal.ZERO) > 0
+                ? "改签成功，需补差价 ¥" + difference
+                : difference.compareTo(BigDecimal.ZERO) < 0
+                ? "改签成功，已退差价 ¥" + difference.abs()
+                : "改签成功，无需补差价");
+        return result;
+    }
+
+    @Transactional
     public Map<String, Object> refundOrder(String orderNo) {
         OrderDTO order = findOrder(orderNo);
         if (order.getStatus() != STATUS_PAID) {

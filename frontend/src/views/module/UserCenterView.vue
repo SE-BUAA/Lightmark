@@ -253,6 +253,17 @@
                 </div>
               </div>
             </div>
+            <div v-if="pointsTotal > pointsPageSize" class="pagination-wrap">
+              <el-pagination
+                v-model:current-page="pointsPage"
+                :page-size="pointsPageSize"
+                :total="pointsTotal"
+                background
+                layout="prev, pager, next"
+                small
+                @current-change="fetchPointsLogs"
+              />
+            </div>
           </div>
         </div>
 
@@ -268,7 +279,7 @@
                   <div class="list-title">{{ orderTypeText(o.order_type) }} · {{ o.order_no }}</div>
                   <div class="list-sub">
                     实付 ¥{{ o.pay_amount }}
-                    <span v-if="o.create_time"> · {{ o.create_time }}</span>
+                    <span v-if="o.createEpochMs || o.create_time"> · {{ formatTime(o.createEpochMs || o.create_time) }}</span>
                   </div>
                   <div v-if="o.cancel_reason" class="list-sub order-reason">{{ o.cancel_reason }}</div>
                 </div>
@@ -284,6 +295,13 @@
                     {{ payLoadingOrderNo === o.order_no ? "支付中..." : "去支付" }}
                   </button>
                   <button
+                    v-if="canChangeTrain(o)"
+                    class="btn-text"
+                    @click="handleChangeTrainOrder(o)"
+                  >
+                    改签
+                  </button>
+                  <button
                     v-if="canRefund(o)"
                     class="btn-text danger"
                     @click="handleRefundOrder(o)"
@@ -292,6 +310,17 @@
                     {{ refundLoadingOrderNo === o.order_no ? "退款中..." : "申请退款" }}
                   </button>
                 </div>
+              </div>
+              <div v-if="orderTotal > orderPageSize" class="pagination-wrap">
+                <el-pagination
+                  v-model:current-page="orderPage"
+                  :page-size="orderPageSize"
+                  :total="orderTotal"
+                  background
+                  layout="prev, pager, next"
+                  small
+                  @current-change="fetchOrders"
+                />
               </div>
             </div>
           </div>
@@ -435,6 +464,26 @@ const userGender = ref(0);
 const userBirthDate = ref("");
 const avatarUrl = ref("");
 
+const formatTime = (time: string | number) => {
+  if (time == null || time === '') return ''
+  try {
+    let d: Date
+    if (typeof time === 'number') {
+      d = new Date(time)
+    } else {
+      d = new Date(time)
+      if (isNaN(d.getTime())) return String(time)
+    }
+    return d.toLocaleString('zh-CN', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit',
+      hour12: false
+    })
+  } catch {
+    return String(time)
+  }
+}
+
 const displayName = computed(() => authStore.nickname || "");
 const accountInfo = computed(() => {
   if (userPhone.value) return userPhone.value;
@@ -492,6 +541,14 @@ const paymentMethodText = (method?: string) => {
 
 const canPay = (order: OrderDTO) => order.status === 0;
 const canRefund = (order: OrderDTO) => order.status === 1;
+const canChangeTrain = (order: OrderDTO) =>
+  order.status === 1 &&
+  String(order.order_type || '').toUpperCase() === 'TRAIN' &&
+  order.changed_once !== 1;
+
+const handleChangeTrainOrder = (order: OrderDTO) => {
+  router.push(`/trains?changeOrderNo=${order.order_no}`);
+};
 
 const editForm = ref({
   nickname: "",
@@ -505,6 +562,12 @@ const travelers = ref<TravelerDTO[]>([]);
 const orders = ref<OrderDTO[]>([]);
 const pointsLogs = ref<PointsLogDTO[]>([]);
 const upgradeInfo = ref<UserLevelUpgradeInfoDTO | null>(null);
+const orderPage = ref(1);
+const orderTotal = ref(0);
+const orderPageSize = 5;
+const pointsPage = ref(1);
+const pointsTotal = ref(0);
+const pointsPageSize = 5;
 
 const travelerDialogOpen = ref(false);
 const travelerSaving = ref(false);
@@ -645,8 +708,9 @@ const fetchTravelers = async () => {
 
 const fetchPointsLogs = async () => {
   try {
-    const res = await getPointsLogs();
+    const res = await getPointsLogs({ page: pointsPage.value, size: pointsPageSize });
     pointsLogs.value = res.list || [];
+    pointsTotal.value = res.total ?? 0;
   } catch {
     pointsLogs.value = [];
   }
@@ -662,8 +726,9 @@ const fetchUpgradeInfo = async () => {
 
 const fetchOrders = async () => {
   try {
-    const res = await getUserOrders();
+    const res = await getUserOrders({ page: orderPage.value, size: orderPageSize });
     orders.value = res.list || [];
+    orderTotal.value = res.total ?? 0;
   } catch {
     orders.value = [];
   }
@@ -1189,6 +1254,12 @@ onMounted(() => {
 .status {
   font-size: 12px;
   color: var(--text-secondary);
+}
+
+.pagination-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 4px;
 }
 
 /* ── Responsive ── */

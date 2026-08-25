@@ -122,12 +122,12 @@ const handleLogout = async () => {
       type: "info",
     });
     await logoutApi();
+    authStore.clearSession();
+    ElMessage.success("已退出登录");
+    router.push("/");
   } catch {
-    // 用户取消或 API 失败，仍然清除本地会话
+    // 用户取消或 API 失败，不退出
   }
-  authStore.clearSession();
-  ElMessage.success("已退出登录");
-  router.push("/");
 };
 
 let scrollHandler: (() => void) | null = null;

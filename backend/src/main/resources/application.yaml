@@ -7,9 +7,9 @@ spring:
     name: backend
   datasource:
     # Database connection configuration
-    url: jdbc:mysql://${DB_HOST:141.147.179.72}:${DB_PORT:3306}/${DB_NAME:lightmark}?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8
-    username: ${DB_USER:se}
-    password: ${DB_PASSWORD:sebuaa}
+    url: jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3306}/${DB_NAME:lightmark}?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8
+    username: ${DB_USER:lightmark}
+    password: ${DB_PASSWORD:change-me}
     hikari:
       max-lifetime: 240000
       keepalive-time: 120000
@@ -119,9 +119,9 @@ lightmark:
     mail:
       host: ${AUTH_MAIL_HOST:smtp.qq.com}
       port: ${AUTH_MAIL_PORT:465}
-      username: ${AUTH_MAIL_USERNAME:novaortus@qq.com}
-      password: ${AUTH_MAIL_PASSWORD:ehsigwjnvqaicidg}
-      from-email: ${AUTH_MAIL_FROM_EMAIL:novaortus@qq.com}
+      username: ${AUTH_MAIL_USERNAME:}
+      password: ${AUTH_MAIL_PASSWORD:}
+      from-email: ${AUTH_MAIL_FROM_EMAIL:}
       from-name: ${AUTH_MAIL_FROM_NAME:lightmark}
       ssl-enabled: ${AUTH_MAIL_SSL_ENABLED:true}
   jwt:
@@ -130,7 +130,7 @@ lightmark:
     issuer: ${JWT_ISSUER:lightmark}
     expire-minutes: ${JWT_EXPIRE_MINUTES:120}
   object-storage:
-    base-url: ${OBJECT_STORAGE_BASE_URL:https://objectstorage.ap-tokyo-1.oraclecloud.com/p/A0TR4wkNYrcGOzvpjsPLLgmD4y9YncSMik4XcQNwY7B5uo7BRt6K1qmEdFME9l27/n/nrrguvtqppqi/b/ortus-bucket/o/}
+    base-url: ${OBJECT_STORAGE_BASE_URL:}
   membership:
     levels:
       - level: 0
