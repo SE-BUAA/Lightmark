@@ -170,8 +170,10 @@ $KUBECTL apply -f "$RENDER_DIR/namespace.yaml"
 $KUBECTL create secret generic lightmark-secrets --from-env-file="$ENV_FILE" \
   -n "$NAMESPACE" --dry-run=client -o yaml | $KUBECTL apply -f -
 # 数据库初始化脚本：database/lightmark.sql -> ConfigMap（首次启动自动执行）
+# 注意：SQL 约 700KB，客户端 apply 会把它写入 last-applied 注解（上限 256KB），
+#       必须用 --server-side（服务端只记录字段所有权，无此限制且幂等）
 $KUBECTL create configmap lightmark-init-sql --from-file=lightmark.sql="$ROOT_DIR/database/lightmark.sql" \
-  -n "$NAMESPACE" --dry-run=client -o yaml | $KUBECTL apply -f -
+  -n "$NAMESPACE" --dry-run=client -o yaml | $KUBECTL apply --server-side -f -
 
 # TLS 证书：优先使用服务器已有证书，否则生成自签名
 STAGE="tls"
