@@ -102,7 +102,7 @@ jobs:
   # ③ 制作并推送版本化镜像（仅当 ① ② 全部通过）
   # ---------------------------------------------------------------
   build-push-images:
-    name: ③ 构建并推送镜像 ${{ env.IMAGE_VERSION }}
+    name: ③ 构建并推送镜像 1.0.${{ github.run_number }}
     needs: [test-backend, build-frontend]
     runs-on: ubuntu-latest
     timeout-minutes: 30
