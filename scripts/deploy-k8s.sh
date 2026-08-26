@@ -99,7 +99,19 @@ log_record "STARTED"
 STAGE="prepare-env"
 ENV_FILE="$DEPLOY_DIR/.env"
 if [ ! -f "$ENV_FILE" ] && [ -n "${SERVER_ENV_BASE64:-}" ]; then
-  echo "$SERVER_ENV_BASE64" | base64 -d > "$ENV_FILE"
+  # 兼容 certutil 等工具生成的内容：去掉 -----BEGIN/END----- 头尾行与全部空白后再解码
+  B64_CLEAN="$(printf '%s' "$SERVER_ENV_BASE64" | grep -vE '^[[:space:]]*-----' | tr -d '[:space:]' || true)"
+  if [ -z "$B64_CLEAN" ] || ! printf '%s' "$B64_CLEAN" | base64 -d > "$ENV_FILE" 2>/dev/null || [ ! -s "$ENV_FILE" ]; then
+    echo "[FATAL] SERVER_ENV_BASE64 解码失败：Secret 内容不是合法 base64。" >&2
+    echo "        请用 scripts/make-env-secret.ps1 -EnvFile server.env 重新生成后更新该 Secret。" >&2
+    exit 1
+  fi
+  # 解码结果应为 KEY=VALUE 形式的 .env
+  if ! grep -qE '^[A-Z_]+=' "$ENV_FILE"; then
+    echo "[FATAL] SERVER_ENV_BASE64 解码结果不是 .env 格式（缺少 KEY=VALUE 行）。" >&2
+    echo "        请确认生成时使用的是新格式 server.env（含 MYSQL_ROOT_PASSWORD 等）。" >&2
+    exit 1
+  fi
   echo "[OK] 已根据 SERVER_ENV_BASE64 生成 $ENV_FILE"
 fi
 if [ ! -f "$ENV_FILE" ]; then
