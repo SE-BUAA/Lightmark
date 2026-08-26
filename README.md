@@ -447,23 +447,53 @@ curl -k -I https://127.0.0.1/api/auth/captcha
 
 仓库 → Settings → Secrets and variables → Actions：
 
-| 类型 | 名称 | 说明 |
+| 类型 | 名称 | 填什么 |
 | --- | --- | --- |
 | Secret | `SERVER_HOST` | 部署服务器 IP（如 `150.230.223.11`），**必需** |
-| Secret | `SERVER_USER` | SSH 用户（如 `ubuntu`） |
-| Secret | `SERVER_SSH_KEY` | SSH 私钥（推荐）或改用 `SERVER_PASSWORD` |
-| Secret | `SERVER_PORT` | SSH 端口（默认 22） |
-| Secret | `SERVER_ENV_BASE64` | 服务器 `.env` 的 base64（首次部署自动写入服务器；之后在服务器上改） |
-| Secret | `GHCR_USERNAME` / `GHCR_PAT` | ghcr 拉取凭据（私有仓库必需；PAT 需 `read:packages`） |
-| Variable | `INGRESS_HOST` | 访问域名（默认 `lightmark.ortus.top`） |
-| Variable | `SERVER_DOMAIN` | 公网域名（配置后在 Actions 内做公网健康检查） |
+| Secret | `SERVER_USER` | SSH 登录用户（如 `ubuntu`） |
+| Secret | `SERVER_SSH_KEY` | SSH **私钥**内容（含 `-----BEGIN ...` 到 `-----END ...` 整段，见下方生成方法） |
+| Secret | `SERVER_PORT` | SSH 端口（默认 22，可不配） |
+| Secret | `SERVER_ENV_BASE64` | 服务器 `.env` 文件内容的 base64（新格式，见下方生成方法） |
+| Secret | `GHCR_USERNAME` / `GHCR_PAT` | GitHub 用户名 + 个人访问令牌（PAT，权限 `read:packages`；仅私有仓库需要，见下方说明） |
+| Variable | `INGRESS_HOST` | 访问域名（如 `lightmark.ortus.top`；不配则默认此值） |
+| Variable | `SERVER_DOMAIN` | 公网域名（可选，配置后流水线会从公网再测一次健康检查） |
 
-生成 `SERVER_ENV_BASE64`：
+**① 生成 SSH 密钥对（`SERVER_SSH_KEY`）**
 
-```bash
-base64 -w0 .env        # Linux / macOS
-certutil -encode .env tmp.b64 && type tmp.b64   # Windows（或使用在线工具）
+```powershell
+# 本机（Windows）生成密钥对，一路回车
+ssh-keygen -t ed25519 -C "github-actions"
+# 私钥（~/.ssh/id_ed25519）内容整段粘贴到 SERVER_SSH_KEY
+Get-Content $env:USERPROFILE\.ssh\id_ed25519
+# 公钥（~/.ssh/id_ed25519.pub）追加到服务器：
+#   ssh ubuntu@<服务器IP> "mkdir -p ~/.ssh && echo '<公钥内容>' >> ~/.ssh/authorized_keys"
 ```
+
+**② 生成 `SERVER_ENV_BASE64`（服务器 `.env` 的 base64）**
+
+先用 `.env.example` 为模板，新建一个**服务器专用** `.env`（新格式，必须含
+`MYSQL_ROOT_PASSWORD` / `MYSQL_PASSWORD` / `DB_USER` / `DB_PASSWORD` / `JWT_SECRET`，
+`DB_HOST=mysql`，再补上 `DEEPSEEK_API_KEY`、邮箱、对象存储等），然后：
+
+```powershell
+# Windows PowerShell 5.1 / pwsh 7 均可；自动复制 base64 到剪贴板，粘贴到 SERVER_ENV_BASE64
+powershell -ExecutionPolicy Bypass -File scripts/make-env-secret.ps1
+```
+
+> `SERVER_ENV_BASE64` 只在服务器上还没有 `~/lightmark/.env` 时自动写入一次；
+> 之后改配置请直接在服务器上编辑 `~/lightmark/.env` 再重新触发部署。
+
+**③ `GHCR_USERNAME` / `GHCR_PAT`（仅当 GitHub 仓库为私有时需要）**
+
+流水线推送镜像用的是自动的 `GITHUB_TOKEN`，不需要配置；只有 **k3s 从 GHCR 拉取私有镜像**
+需要凭据：
+
+- `GHCR_USERNAME`：你的 GitHub 用户名（能访问该仓库的账号）
+- `GHCR_PAT`：GitHub → Settings → Developer settings → Personal access tokens →
+  Generate new token，勾选 `read:packages`（或 Fine-grained token：仓库 Lightmark + Packages: Read），
+  复制生成的 `ghp_...` 粘贴
+
+仓库为公开时可不配（匿名拉取），部署脚本会自动兜底。
 
 ### 4）服务器初始化（首次）
 

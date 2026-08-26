@@ -175,6 +175,11 @@ fi
 STAGE="apply-workloads"
 $KUBECTL apply -f "$RENDER_DIR/mysql.yaml" -f "$RENDER_DIR/backend.yaml" -f "$RENDER_DIR/frontend.yaml" -f "$RENDER_DIR/ingress.yaml"
 
+# 若本次只有 Secret（.env）变化而镜像 tag 未变，Pod 不会自动重建，
+# 显式重启后端使其拿到最新环境变量
+STAGE="restart-backend"
+$KUBECTL rollout restart deployment/lightmark-backend -n "$NAMESPACE"
+
 # ---------- 4. 等待滚动更新完成 ----------
 STAGE="rollout-mysql"
 $KUBECTL rollout status deployment/lightmark-mysql -n "$NAMESPACE" --timeout=420s
