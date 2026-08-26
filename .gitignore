@@ -4,6 +4,8 @@ frontend/API.md
 .claude
 .history
 .env
+server.env
+deploy/certs/
 package-project.ps1
 lightmark.tar.gz
 uninstall-server.sh
