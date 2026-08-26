@@ -192,23 +192,33 @@ else
   echo "[WARN] 未找到证书，已生成自签名证书（浏览器会提示不安全）"
 fi
 
+# ---------- 4. 数据库：仅首次部署时创建/初始化，后续部署跳过 ----------
+STAGE="mysql"
+if $KUBECTL get deployment lightmark-mysql -n "$NAMESPACE" >/dev/null 2>&1; then
+  echo "[SKIP] lightmark-mysql 已存在：数据持久化在 PVC，跳过数据库部署（不重建、不重复导入 SQL）"
+  echo "       如需重置数据库（下次部署自动重建并导入 database/lightmark.sql）："
+  echo "         kubectl delete deployment lightmark-mysql -n $NAMESPACE"
+  echo "         kubectl delete pvc lightmark-mysql-pvc -n $NAMESPACE"
+else
+  $KUBECTL apply -f "$RENDER_DIR/mysql.yaml"
+  $KUBECTL rollout status deployment/lightmark-mysql -n "$NAMESPACE" --timeout=420s
+fi
+
 STAGE="apply-workloads"
-$KUBECTL apply -f "$RENDER_DIR/mysql.yaml" -f "$RENDER_DIR/backend.yaml" -f "$RENDER_DIR/frontend.yaml" -f "$RENDER_DIR/ingress.yaml"
+$KUBECTL apply -f "$RENDER_DIR/backend.yaml" -f "$RENDER_DIR/frontend.yaml" -f "$RENDER_DIR/ingress.yaml"
 
 # 若本次只有 Secret（.env）变化而镜像 tag 未变，Pod 不会自动重建，
 # 显式重启后端使其拿到最新环境变量
 STAGE="restart-backend"
 $KUBECTL rollout restart deployment/lightmark-backend -n "$NAMESPACE"
 
-# ---------- 4. 等待滚动更新完成 ----------
-STAGE="rollout-mysql"
-$KUBECTL rollout status deployment/lightmark-mysql -n "$NAMESPACE" --timeout=420s
+# ---------- 5. 等待滚动更新完成 ----------
 STAGE="rollout-backend"
 $KUBECTL rollout status deployment/lightmark-backend -n "$NAMESPACE" --timeout=420s
 STAGE="rollout-frontend"
 $KUBECTL rollout status deployment/lightmark-frontend -n "$NAMESPACE" --timeout=180s
 
-# ---------- 5. 健康检查 ----------
+# ---------- 6. 健康检查 ----------
 STAGE="healthcheck"
 if bash "$SCRIPT_DIR/healthcheck.sh" "https://127.0.0.1" "$INGRESS_HOST"; then
   :
