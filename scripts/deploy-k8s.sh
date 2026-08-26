@@ -133,7 +133,11 @@ done
 # DB_HOST 缺省为 mysql（k8s Service 名，与 docker-compose 一致）
 grep -qE '^DB_HOST=' "$ENV_FILE" || echo 'DB_HOST=mysql' >> "$ENV_FILE"
 
-# ---------- 2. ghcr 拉取凭据（imagePullSecret） ----------
+# ---------- 2. 命名空间 + ghcr 拉取凭据（imagePullSecret） ----------
+STAGE="namespace"
+# namespace.yaml 不含占位符，可直接应用源文件；先建命名空间，后续 Secret/ConfigMap 才能创建
+$KUBECTL apply -f "$ROOT_DIR/deploy/k8s/namespace.yaml"
+
 STAGE="ghcr-secret"
 if [ -n "${GHCR_USERNAME:-}" ] && [ -n "${GHCR_PAT:-}" ]; then
   $KUBECTL create secret docker-registry ghcr-secret \
