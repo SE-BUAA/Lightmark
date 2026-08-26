@@ -479,8 +479,8 @@ sudo bash scripts/server-bootstrap.sh --stop-legacy   # 需要时停止旧 docke
 ```bash
 # 仓库 Actions 页面 → CI/CD 流水线 → Run workflow（workflow_dispatch 手动触发）
 
-# 服务器上手动部署（不经流水线）
-TAG=1.0.123 REPO=se-buaa/timemark bash scripts/deploy-k8s.sh
+# 服务器上手动部署（不经流水线；REPO 为实际 GitHub 仓库，如 se-buaa/lightmark）
+TAG=1.0.123 REPO=se-buaa/lightmark bash scripts/deploy-k8s.sh
 ```
 
 ### 6）Kubernetes 部署文件说明（`deploy/k8s/`）
