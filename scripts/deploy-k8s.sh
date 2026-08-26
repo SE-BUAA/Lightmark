@@ -23,7 +23,9 @@
 set -euo pipefail
 
 TAG="${TAG:?必须设置 TAG（镜像版本号，如 1.0.123）}"
-REPO="${REPO:?必须设置 REPO（如 se-buaa/timemark）}"
+REPO="${REPO:?必须设置 REPO（如 se-buaa/lightmark）}"
+# GHCR 镜像仓库名必须全小写（防御手动调用时传入大写）
+REPO="${REPO,,}"
 REGISTRY="${REGISTRY:-ghcr.io}"
 COMMIT_SHA="${COMMIT_SHA:-unknown}"
 INGRESS_HOST="${INGRESS_HOST:-lightmark.ortus.top}"
