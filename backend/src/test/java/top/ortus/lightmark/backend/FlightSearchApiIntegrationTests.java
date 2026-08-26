@@ -1,5 +1,6 @@
 package top.ortus.lightmark.backend;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -7,7 +8,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
+import top.ortus.lightmark.backend.service.FlightSearchService;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 
 import static org.hamcrest.Matchers.greaterThan;
@@ -26,6 +31,21 @@ class FlightSearchApiIntegrationTests extends BaseIntegrationTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private FlightSearchService flightSearchService;
+
+    /**
+     * 测试数据（data-h2.sql）中航班起飞时间为 2026-06-20 08:30（Asia/Shanghai）。
+     * 把时钟固定到起飞前 24 小时以上，保证退款手续费率分支（10%）稳定可断言，
+     * 避免测试结果随真实时间漂移（例如日期过后手续费率翻到 30% 导致断言失败）。
+     */
+    @BeforeEach
+    void fixFlightClock() {
+        flightSearchService.setClock(Clock.fixed(
+                Instant.parse("2026-06-19T00:00:00Z"),
+                ZoneId.of("Asia/Shanghai")));
+    }
 
     private String userToken() {
         return bearerToken(2L, "普通用户", List.of("USER"));

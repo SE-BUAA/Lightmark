@@ -14,6 +14,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Clob;
 import java.sql.Timestamp;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -67,6 +68,14 @@ public class FlightSearchService {
         this.jdbcTemplate = jdbcTemplate;
         this.objectMapper = objectMapper;
         this.pointsMembershipService = pointsMembershipService;
+    }
+
+    // 可注入时钟，便于测试固定时间（与 OrderServiceImpl 同一模式）。
+    // 生产环境使用系统时钟，测试中可通过 setClock 固定时间，消除时间漂移导致的测试不稳定。
+    private Clock clock = Clock.systemDefaultZone();
+
+    public void setClock(Clock clock) {
+        this.clock = clock == null ? Clock.systemDefaultZone() : clock;
     }
 
     /**
@@ -732,7 +741,7 @@ public class FlightSearchService {
 
     private Map<String, Object> buildRefundInfo(OrderDTO order, ProductDTO flight) {
         LocalDateTime departureAt = departureDateTime(flight);
-        long hoursBeforeDeparture = departureAt == null ? 0 : Duration.between(LocalDateTime.now(), departureAt).toHours();
+        long hoursBeforeDeparture = departureAt == null ? 0 : Duration.between(LocalDateTime.now(clock), departureAt).toHours();
         BigDecimal rate = hoursBeforeDeparture >= 24 ? new BigDecimal("0.10") : new BigDecimal("0.30");
         BigDecimal payAmount = order.getPay_amount() == null ? BigDecimal.ZERO : order.getPay_amount();
         BigDecimal fee = payAmount.multiply(rate).setScale(2, RoundingMode.HALF_UP);
