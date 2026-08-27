@@ -256,6 +256,8 @@ jobs:
 
   # ---------------------------------------------------------------
   # ⑤ 健康检查（仅当 ④ 通过；失败即整个流水线失败）
+  #   - 服务器端：带重试断言后端 UP / 首页含 Vue 挂载点 / 静态资源可加载
+  #   - 公网入口：按浏览器路径（TLS + 域名 Host + 路由）直连服务器验证
   # ---------------------------------------------------------------
   health-check:
     name: ⑤ 健康检查
@@ -263,7 +265,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: 服务器端健康检查（Ingress 入口）
+      - name: 服务器端健康检查（Ingress 入口，带重试与断言）
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -275,9 +277,17 @@ jobs:
             cd "$HOME/lightmark-cicd"
             bash scripts/healthcheck.sh "https://127.0.0.1" "$INGRESS_HOST"
           envs: INGRESS_HOST
-      - name: 公网健康检查（配置了 SERVER_DOMAIN 变量时执行）
-        if: ${{ vars.SERVER_DOMAIN != '' }}
+      - name: 浏览器入口验证（TLS + 域名 + 路由，直连服务器）
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          INGRESS_HOST: ${{ vars.INGRESS_HOST }}
         run: |
-          curl -fsS --max-time 20 "https://${{ vars.SERVER_DOMAIN }}/api/health" | grep -q '"UP"'
-          curl -fsS --max-time 20 -o /dev/null "https://${{ vars.SERVER_DOMAIN }}/"
-          echo "公网入口 https://${{ vars.SERVER_DOMAIN }} 健康检查通过"
+          HOST="${INGRESS_HOST:-lightmark.ortus.top}"
+          echo "验证入口: https://$HOST （--resolve 到 $SERVER_HOST）"
+          # 后端：浏览器路径下 /api/health 必须返回 UP
+          curl -fsS --max-time 20 --resolve "$HOST:443:$SERVER_HOST" "https://$HOST/api/health" | grep -q '"UP"'
+          # 前端：首页 200 且含 Vue 挂载点（浏览器可打开）
+          curl -fsS --max-time 20 --resolve "$HOST:443:$SERVER_HOST" -o /tmp/lm-index.html "https://$HOST/"
+          grep -q 'id="app"' /tmp/lm-index.html
+          rm -f /tmp/lm-index.html
+          echo "浏览器入口 https://$HOST 可访问（后端 UP + 首页含 Vue 挂载点）✓"

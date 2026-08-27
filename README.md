@@ -436,7 +436,7 @@ curl -k -I https://127.0.0.1/api/auth/captcha
 | ② | `build-frontend` | Node 20 + npm，`npm ci && npm run build` |
 | ③ | `build-push-images` | 仅当 ①② 通过。Buildx 构建后端 / 前端镜像并推送 GHCR，标签：`1.0.<run_number>`（版本号）+ `sha-<commit>`，**不使用 latest 部署** |
 | ④ | `deploy` | 仅当 ③ 通过。SSH 上传部署文件，服务器执行 `scripts/deploy-k8s.sh`：生成 Secret/ConfigMap（含数据库初始化脚本）、`kubectl apply`、等待滚动更新 |
-| ⑤ | `health-check` | 仅当 ④ 通过。检查后端 `/api/health`（UP）与前端首页；可选公网域名二次验证 |
+| ⑤ | `health-check` | 仅当 ④ 通过。带重试断言：后端 `/api/health` 返回 UP、首页 200 且含 Vue 挂载点、静态资源可加载；再从公网按浏览器路径（TLS+域名+路由）验证入口 |
 
 ### 2）成功 / 失败记录保留
 
