@@ -103,7 +103,7 @@
 
         <div class="cover-strip">
           <div v-for="(image, index) in postImages" :key="image" class="cover-tile">
-            <img :src="image" alt="游记图片预览" />
+            <img :src="communityImageUrl(image)" alt="游记图片预览" />
             <span v-if="index === 0" class="cover-label">封面</span>
             <button class="remove-image" type="button" @click="removePostImage(image)">×</button>
           </div>
@@ -207,7 +207,7 @@
 
         <el-carousel v-if="imageList(postDetail.images).length" class="reader-carousel" indicator-position="outside" height="460px">
           <el-carousel-item v-for="image in imageList(postDetail.images)" :key="image">
-            <img :src="image" :alt="postDetail.title" />
+            <img :src="communityImageUrl(image)" :alt="postDetail.title" />
           </el-carousel-item>
         </el-carousel>
 
@@ -350,6 +350,7 @@ const postRoute = ref('')
 const postVisibility = ref<'public' | 'private'>('public')
 const allowComments = ref(true)
 const publishAgreed = ref(true)
+const COMMUNITY_IMAGE_BASE_URL = 'https://objectstorage.ap-tokyo-1.oraclecloud.com/p/DrCIcuZzY23irWZEg-Z28KiNqiaYAhxmr9dHddU1uS-GuopaYi6TCQ7Ok7lRCU0C/n/nrrguvtqppqi/b/ortus-bucket/o/'
 
 const postForm = reactive({ title: '', content: '', images: '' })
 const questionForm = reactive({ title: '', content: '' })
@@ -606,12 +607,31 @@ const handleDeleteAnswer = async (question: Question) => {
   }
 }
 
-const firstImage = (images?: string) => imageList(images)[0] || ''
+const firstImage = (images?: string) => {
+  const objectName = imageList(images)[0]
+  return objectName ? communityImageUrl(objectName) : ''
+}
+
+const communityImageName = (value: string) => {
+  const normalized = value.trim().split(/[?#]/, 1)[0].replace(/\\/g, '/')
+  if (/^https?:\/\//i.test(normalized) && !normalized.includes('objectstorage.ap-tokyo-1.oraclecloud.com/')) {
+    return normalized
+  }
+  return normalized.substring(normalized.lastIndexOf('/') + 1)
+}
+
+const communityImageUrl = (objectName: string) => {
+  const normalized = communityImageName(objectName)
+  return /^https?:\/\//i.test(normalized)
+    ? normalized
+    : `${COMMUNITY_IMAGE_BASE_URL}${encodeURIComponent(normalized)}`
+}
+
 const imageList = (images?: string) => {
   if (!images) return []
   try {
     const parsed = JSON.parse(images)
-    return Array.isArray(parsed) ? parsed.map(String).filter(Boolean) : []
+    return Array.isArray(parsed) ? parsed.map(String).map(communityImageName).filter(Boolean) : []
   } catch {
     return []
   }
@@ -686,7 +706,7 @@ const handleImageFiles = async (event: Event) => {
     for (const file of uploadFiles) {
       const uploadFile = await compressImage(file)
       const result = await uploadCommunityImage(uploadFile)
-      postImages.value.push(result.url)
+      postImages.value.push(result.objectName)
     }
     ElMessage.success('图片已上传')
   } catch {

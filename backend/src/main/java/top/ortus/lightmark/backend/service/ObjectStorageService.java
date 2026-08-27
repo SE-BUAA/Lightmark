@@ -23,6 +23,8 @@ import java.util.UUID;
 public class ObjectStorageService {
 
     private static final DateTimeFormatter OBJECT_TIME = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+    private static final String COMMUNITY_IMAGE_BASE_URL =
+            "https://objectstorage.ap-tokyo-1.oraclecloud.com/p/DrCIcuZzY23irWZEg-Z28KiNqiaYAhxmr9dHddU1uS-GuopaYi6TCQ7Ok7lRCU0C/n/nrrguvtqppqi/b/ortus-bucket/o/";
 
     private final HttpClient httpClient;
     private final String baseUrl;
@@ -54,9 +56,6 @@ public class ObjectStorageService {
     }
 
     public String uploadPostImage(String normalizedUserId16, MultipartFile file) {
-        if (baseUrl.isBlank()) {
-            throw new ApiException(500, "object storage not configured");
-        }
         if (normalizedUserId16 == null || normalizedUserId16.isBlank()) {
             throw new ApiException(400, "invalid user id");
         }
@@ -70,11 +69,16 @@ public class ObjectStorageService {
         byte[] jpegBytes = toJpeg(file);
         String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
         String objectName = "post-" + normalizedUserId16 + "-" + LocalDateTime.now().format(OBJECT_TIME) + "-" + suffix + ".jpg";
-        return uploadJpeg(objectName, jpegBytes);
+        uploadJpeg(COMMUNITY_IMAGE_BASE_URL, objectName, jpegBytes);
+        return objectName;
     }
 
     private String uploadJpeg(String objectName, byte[] jpegBytes) {
-        String url = normalizeBaseUrl(baseUrl) + "/" + objectName;
+        return uploadJpeg(baseUrl, objectName, jpegBytes);
+    }
+
+    private String uploadJpeg(String uploadBaseUrl, String objectName, byte[] jpegBytes) {
+        String url = normalizeBaseUrl(uploadBaseUrl) + "/" + objectName;
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
