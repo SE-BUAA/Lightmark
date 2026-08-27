@@ -95,9 +95,11 @@ echo "=========================================================="
 mkdir -p "$DEPLOY_DIR"
 log_record "STARTED"
 
-# ---------- 1. 准备 .env（密钥） ----------
+# ---------- 1. 准备 k8s 专用密钥文件（.env.k8s，与手动 compose 的 .env 分离） ----------
 STAGE="prepare-env"
-ENV_FILE="$DEPLOY_DIR/.env"
+# 说明：手动 compose 部署（deploy-server.sh）会覆盖服务器上的 .env（旧格式，无 MYSQL_*），
+#       因此 k8s 流水线使用独立的 .env.k8s，两条路径互不干扰。
+ENV_FILE="$DEPLOY_DIR/.env.k8s"
 if [ ! -f "$ENV_FILE" ] && [ -n "${SERVER_ENV_BASE64:-}" ]; then
   # 兼容 certutil 等工具生成的内容：去掉 -----BEGIN/END----- 头尾行与全部空白后再解码
   B64_CLEAN="$(printf '%s' "$SERVER_ENV_BASE64" | grep -vE '^[[:space:]]*-----' | tr -d '[:space:]' || true)"
@@ -116,8 +118,8 @@ if [ ! -f "$ENV_FILE" ] && [ -n "${SERVER_ENV_BASE64:-}" ]; then
 fi
 if [ ! -f "$ENV_FILE" ]; then
   echo "[FATAL] 服务器缺少 $ENV_FILE，请任选其一："
-  echo "        1) 在 GitHub Secrets 配置 SERVER_ENV_BASE64（.env 的 base64）"
-  echo "        2) 手动上传 .env 到服务器 $DEPLOY_DIR/.env"
+  echo "        1) 在 GitHub Secrets 配置 SERVER_ENV_BASE64（新格式 server.env 的 base64）"
+  echo "        2) 手动上传新格式 env 到服务器 $ENV_FILE（含 MYSQL_ROOT_PASSWORD 等）"
   exit 1
 fi
 sed -i 's/\r$//' "$ENV_FILE"

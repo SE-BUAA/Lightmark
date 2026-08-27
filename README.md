@@ -483,8 +483,10 @@ Get-Content $env:USERPROFILE\.ssh\id_ed25519
 powershell -ExecutionPolicy Bypass -File scripts/make-env-secret.ps1
 ```
 
-> `SERVER_ENV_BASE64` 只在服务器上还没有 `~/lightmark/.env` 时自动写入一次；
-> 之后改配置请直接在服务器上编辑 `~/lightmark/.env` 再重新触发部署。
+> `SERVER_ENV_BASE64` 只在服务器上还没有 `~/lightmark/.env.k8s` 时自动写入一次；
+> 之后改配置请直接在服务器上编辑 `~/lightmark/.env.k8s` 再重新触发部署。
+> （k8s 流水线使用独立的 `.env.k8s`，与手动 compose 部署共用的 `~/lightmark/.env` 互不干扰，
+> 避免 `deploy-server.sh` 覆盖旧格式 `.env` 导致 k8s 校验缺变量。）
 
 **③ `GHCR_USERNAME` / `GHCR_PAT`（仅当 GitHub 仓库为私有时需要）**
 
