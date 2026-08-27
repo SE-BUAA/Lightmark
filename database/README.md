@@ -6,7 +6,7 @@
 
 | 文件 | 说明 |
 | --- | --- |
-| `lightmark.sql` | MySQL 8.0 全量备份：全部表结构 + 测试数据（含 `flyway_schema_history`）。由 DBX 导出，UTF-8 编码，不含 `CREATE DATABASE`/`USE`，需在 `MYSQL_DATABASE=lightmark` 下执行 |
+| `lightmark.sql` | MySQL 8.0 全量备份：全部表结构 + 测试数据（含 `flyway_schema_history`）。由 DBX 导出，UTF-8 编码，不含 `CREATE DATABASE`/`USE`，需在 `MYSQL_DATABASE=lightmark` 下执行。**文件头部含 `SET NAMES utf8mb4;`，导入时强制 utf8mb4**（mysql 客户端默认 latin1 会导致中文双重编码） |
 
 ## 自动加载机制
 
