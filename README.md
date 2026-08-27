@@ -337,9 +337,10 @@ OBJECT_STORAGE_BASE_URL + "/" + objectName
 
 ## Docker 部署
 
-> 三种运行方式：**本地开发（Compose 构建）**、**单机部署（Compose 构建）**、**服务器自动部署（GitHub Actions → Kubernetes）**。
-> 前端、后端、数据库均运行在容器中；数据库使用官方 `mysql:8.0.43` 镜像，
-> 首次启动自动读入 `database/lightmark.sql`（建表 + 测试数据），之后由后端 Flyway 负责增量迁移。
+> 运行方式：**本地开发/单机部署（Compose）**、**服务器自动部署（GitHub Actions → Kubernetes）**。
+> Compose 默认使用**外部/本地数据库**（.env 的 `DB_HOST`），需要**容器化 MySQL**
+> （官方 `mysql:8.0.43`，首次启动自动读入 `database/lightmark.sql`）时叠加
+> `docker-compose.mysql.yml`。之后由后端 Flyway 负责增量迁移。
 
 ### 0）新机器快速启动（换一台机器也能跑）
 
@@ -348,20 +349,22 @@ OBJECT_STORAGE_BASE_URL + "/" + objectName
 # 2. 克隆代码
 git clone <仓库地址> lightmark && cd lightmark
 # 3. 准备环境变量
-cp .env.example .env          # 修改 MYSQL_ROOT_PASSWORD / MYSQL_PASSWORD / DB_PASSWORD / JWT_SECRET / DEEPSEEK_API_KEY
+cp .env.example .env          # 修改 DB_PASSWORD / JWT_SECRET / DEEPSEEK_API_KEY 等
 # 4. 无 HTTPS 证书的本地环境改用纯 HTTP Nginx 配置（.env 中设置）
 #    NGINX_CONF=./deploy/nginx.http.conf
-# 5. 启动（MySQL 首次启动自动导入 database/lightmark.sql）
+# 5a. 用本地/外部数据库（需要自己在 .env 配 DB_HOST 指向可用 MySQL）
 docker compose up -d --build
+# 5b. 或用容器化 MySQL（首次启动自动导入 database/lightmark.sql，.env 需设 MYSQL_ROOT_PASSWORD/MYSQL_PASSWORD）
+docker compose -f docker-compose.yml -f docker-compose.mysql.yml up -d --build
 # 6. 验证
 docker compose ps
 curl -I http://127.0.0.1/api/health
 ```
 
-数据库容器数据保存在命名卷 `lightmark-mysql-data` 中；删除卷后重新启动即重新导入备份脚本：
+容器化 MySQL 的数据保存在命名卷 `lightmark-mysql-data` 中；删除卷后重新启动即重新导入备份脚本：
 
 ```bash
-docker compose down -v        # 慎用：-v 会删除数据库数据卷
+docker compose -f docker-compose.yml -f docker-compose.mysql.yml down -v   # 慎用：-v 会删除数据库数据卷
 ```
 
 ### 1）一键部署（Windows 本地执行）

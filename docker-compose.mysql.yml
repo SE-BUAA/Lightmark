@@ -1,0 +1,50 @@
+# =====================================================================
+# 可选：容器化 MySQL 覆盖文件
+# 默认 compose 不启动 MySQL（使用外部/本地数据库，见 .env 的 DB_HOST）。
+# 需要「容器化 MySQL + 首次自动导入 database/*.sql」时，叠加本文件：
+#
+#   docker compose -f docker-compose.yml -f docker-compose.mysql.yml up -d --build
+#
+# 使用容器库时 .env 需设置：
+#   MYSQL_ROOT_PASSWORD / MYSQL_PASSWORD（必需）
+#   MYSQL_DATABASE / MYSQL_USER（可选，默认 lightmark）
+# 同时 DB_HOST 会被本文件强制覆盖为 mysql（容器服务名）。
+# =====================================================================
+services:
+  mysql:
+    # 官方镜像，固定版本号（不随 latest 漂移）
+    image: mysql:8.0.43
+    container_name: lightmark-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?请在 .env 中设置 MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-lightmark}
+      MYSQL_USER: ${MYSQL_USER:-lightmark}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?请在 .env 中设置 MYSQL_PASSWORD}
+      TZ: ${TZ:-Asia/Shanghai}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    ports:
+      # 宿主机已有 MySQL 时把 MYSQL_PORT 改成 3307 等空闲端口
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      # 首次启动（数据卷为空）时自动读入 database/ 下所有 *.sql 建表/测试数据脚本
+      - ./database:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - lightmark-net
+
+  backend:
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      # 容器库模式下强制指向 MySQL 容器（覆盖 docker-compose.yml 中的 DB_HOST）
+      DB_HOST: mysql
