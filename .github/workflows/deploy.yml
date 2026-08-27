@@ -278,7 +278,7 @@ jobs:
           script: |
             set -e
             cd "$HOME/lightmark-cicd"
-            bash scripts/healthcheck.sh "https://127.0.0.1" "$INGRESS_HOST"
+            HC_RETRIES=10 bash scripts/healthcheck.sh "https://127.0.0.1" "$INGRESS_HOST"
           envs: INGRESS_HOST
       - name: 浏览器入口验证（TLS + 域名 + 路由，直连服务器）
         env:
