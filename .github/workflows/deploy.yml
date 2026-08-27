@@ -105,7 +105,7 @@ jobs:
     name: ③ 构建并推送镜像 1.0.${{ github.run_number }}
     needs: [test-backend, build-frontend]
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     outputs:
       image_repo: ${{ steps.lowerrepo.outputs.repo }}
     steps:
@@ -114,6 +114,8 @@ jobs:
       - name: 计算镜像仓库名（GHCR 要求全小写）
         id: lowerrepo
         run: echo "repo=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+      - name: 准备 QEMU（多架构构建模拟）
+        uses: docker/setup-qemu-action@v3
       - name: 准备 Buildx
         uses: docker/setup-buildx-action@v3
       - name: 登录 GHCR
@@ -122,23 +124,25 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: 构建并推送后端镜像
+      - name: 构建并推送后端镜像（amd64 + arm64）
         uses: docker/build-push-action@v6
         with:
           context: ./backend
           file: backend/Dockerfile
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: |
             ghcr.io/${{ steps.lowerrepo.outputs.repo }}/backend:${{ env.IMAGE_VERSION }}
             ghcr.io/${{ steps.lowerrepo.outputs.repo }}/backend:sha-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      - name: 构建并推送前端镜像
+      - name: 构建并推送前端镜像（amd64 + arm64）
         uses: docker/build-push-action@v6
         with:
           context: ./frontend
           file: frontend/Dockerfile.nginx
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: |
             ghcr.io/${{ steps.lowerrepo.outputs.repo }}/frontend:${{ env.IMAGE_VERSION }}
             ghcr.io/${{ steps.lowerrepo.outputs.repo }}/frontend:sha-${{ github.sha }}
