@@ -136,15 +136,18 @@ jobs:
         run: |
           npm ci
           npm run build
-      - name: 准备镜像构建上下文（jar / dist）
+      - name: 准备镜像构建上下文（jar / dist / nginx 配置）
         run: |
           mkdir -p imgctx/backend imgctx/frontend
           cp backend/target/*.jar imgctx/backend/app.jar
           # 复制 dist 目录本身（与 frontend/Dockerfile.runtime 的 COPY dist 匹配）
           cp -r frontend/dist imgctx/frontend/
+          # SPA 回退配置（次级路由刷新不 404）
+          cp deploy/nginx.spa.conf imgctx/frontend/nginx.spa.conf
           # 产物校验：缺失/为空立即失败，避免 buildx 阶段报费解的 "/dist": not found
           [ -s imgctx/backend/app.jar ] || { echo "::error::后端 jar 未生成（backend/target/*.jar）"; exit 1; }
           [ -d imgctx/frontend/dist ] || { echo "::error::前端 dist 未生成（frontend/dist）"; exit 1; }
+          [ -s imgctx/frontend/nginx.spa.conf ] || { echo "::error::nginx.spa.conf 未生成"; exit 1; }
           echo "== 镜像构建上下文 =="
           ls -lh imgctx/backend
           ls imgctx/frontend/dist | head -5
