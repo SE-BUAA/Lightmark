@@ -8,6 +8,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.hamcrest.Matchers.greaterThan;
@@ -546,6 +547,14 @@ class FlightSearchApiIntegrationTests extends BaseIntegrationTest {
 
     @Test
     void ticketedOrderShouldCalculateRefund() throws Exception {
+        String refundableDepartureDate = LocalDate.now().plusDays(2).toString();
+        jdbcTemplate.update(
+                "update product set extra = replace(extra, ?, ?) where id = ?",
+                "\"departureDate\":\"2026-06-20\"",
+                "\"departureDate\":\"" + refundableDepartureDate + "\"",
+                "1"
+        );
+
         String createResponse = mockMvc.perform(post("/api/flights/order")
                         .header("Authorization", userToken())
                         .contentType("application/json")
