@@ -9,6 +9,7 @@ import top.ortus.lightmark.backend.converter.UserConverter;
 import top.ortus.lightmark.backend.dao.User;
 import top.ortus.lightmark.backend.dao.UserRepositoryImpl;
 import top.ortus.lightmark.backend.dto.UserDTO;
+import top.ortus.lightmark.backend.dto.auth.AdminLoginRequest;
 import top.ortus.lightmark.backend.dto.auth.AuthLoginRequest;
 import top.ortus.lightmark.backend.dto.auth.AuthRegisterRequest;
 import top.ortus.lightmark.backend.dto.auth.AuthTokenDTO;
@@ -121,6 +122,32 @@ public class AuthService {
         List<String> roles = List.of(identity.name());
         String token = jwtTokenService.createToken(Long.valueOf(user.getId()), user.getNickname(), identity);
         return new AuthTokenDTO(token, UserIdFormatter.format16(user.getId()), user.getNickname(), user.getAvatar(), identity.name(), roles);
+    }
+
+    /**
+     * 管理后台登录：不校验图形验证码与隐私协议，但必须校验密码与 ADMIN 角色。
+     */
+    public AuthTokenDTO adminLogin(AdminLoginRequest request, HttpServletRequest httpRequest) {
+        if (request == null || request.getAccount() == null || request.getAccount().isBlank()
+                || request.getPassword() == null || request.getPassword().isBlank()) {
+            throw new ApiException(400, "invalid request");
+        }
+        User user = authValidationService.findLoginUser(request.getAccount());
+        if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new ApiException(401, "invalid credentials");
+        }
+        UserIdentity identity = userRepositoryImpl.findIdentityByUserId(user.getId());
+        if (identity != UserIdentity.ADMIN) {
+            throw new ApiException(403, "该账号无后台权限");
+        }
+
+        user.setLast_login_time(LocalDateTime.now());
+        user.setLast_login_ip(resolveClientIp(httpRequest));
+        user.setUpdate_time(LocalDateTime.now());
+        userRepositoryImpl.update(user);
+
+        String token = jwtTokenService.createToken(Long.valueOf(user.getId()), user.getNickname(), identity);
+        return new AuthTokenDTO(token, UserIdFormatter.format16(user.getId()), user.getNickname(), user.getAvatar(), identity.name(), List.of(identity.name()));
     }
 
     private String resolveClientIp(HttpServletRequest request) {

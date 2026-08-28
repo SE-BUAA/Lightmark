@@ -41,6 +41,14 @@ export const loginApi = (payload: LoginRequest): Promise<LoginResponse> => {
   return http.post<LoginResponse>("/auth/login", payload);
 };
 
+/** 管理后台登录：无需图形验证码与隐私协议（后端校验密码与 ADMIN 角色） */
+export const adminLoginApi = (payload: {
+  account: string;
+  password: string;
+}): Promise<LoginResponse> => {
+  return http.post<LoginResponse>("/auth/admin/login", payload);
+};
+
 export const registerApi = (
   payload: RegisterRequest
 ): Promise<Record<string, unknown>> => {

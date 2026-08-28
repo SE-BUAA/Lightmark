@@ -97,4 +97,33 @@ class AuthFlowIntegrationTests extends BaseIntegrationTest {
         mockMvc.perform(get("/api/auth/captcha"))
                 .andExpect(status().isOk());
     }
+
+    @Test
+    void adminLoginShouldWorkWithoutCaptchaForAdmin() throws Exception {
+        mockMvc.perform(post("/api/auth/admin/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "account":"admin@lightmark.com",
+                                  "password":"password"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.identity").value("ADMIN"));
+    }
+
+    @Test
+    void adminLoginShouldRejectNormalUser() throws Exception {
+        mockMvc.perform(post("/api/auth/admin/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "account":"user@lightmark.com",
+                                  "password":"password"
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value(403));
+    }
 }
