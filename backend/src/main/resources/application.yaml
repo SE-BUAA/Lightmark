@@ -7,7 +7,7 @@ spring:
     name: backend
   datasource:
     # Database connection configuration
-    url: jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3306}/${DB_NAME:lightmark}?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8
+    url: jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3306}/${DB_NAME:lightmark}?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8&connectionCollation=utf8mb4_0900_ai_ci
     username: ${DB_USER:lightmark}
     password: ${DB_PASSWORD:change-me}
     hikari:

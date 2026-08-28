@@ -1,0 +1,296 @@
+# =====================================================================
+# Lightmark CI/CD 流水线（GitHub Actions）
+#
+# 触发：push 到 develop 分支（也可手动 workflow_dispatch 触发）
+#
+# 阶段与门禁（任何一步失败，后续部署立即停止，本 Run 即失败记录）：
+#   ① test-backend      取代码 → 安装依赖 → 单元测试 + 集成测试（H2）
+#   ② build-frontend    取代码 → 安装依赖 → 编译
+#   ③ build-push-images ① ② 通过后：制作并推送带版本号的镜像（GHCR）
+#   ④ deploy            SSH 到服务器，kubectl 部署到 Kubernetes
+#   ⑤ health-check      健康检查（后端 /api/health + 前端首页）
+#
+# 记录保留：
+#   - 每次 push 的 Run 历史与日志（成功/失败均保留在 Actions 页）
+#   - 测试报告 / 构建产物作为 Artifact 上传
+#   - 服务器端 deploy-history.log 记录每次部署成功/失败/回滚
+#
+# 镜像版本号：1.0.<run_number>（如 1.0.12），另附 sha-<commit> 标签，
+# 不使用 latest 作为部署依据。
+# =====================================================================
+name: CI/CD 流水线
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+concurrency:
+  group: lightmark-cicd-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_REGISTRY: ghcr.io
+  IMAGE_VERSION: 1.0.${{ github.run_number }}
+
+jobs:
+  # ---------------------------------------------------------------
+  # ① 后端：单元测试 + 集成测试
+  # ---------------------------------------------------------------
+  test-backend:
+    name: ① 后端测试（单元 + 集成）
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: 取代码
+        uses: actions/checkout@v5
+      - name: 安装 JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: 安装依赖并执行全部测试
+        working-directory: backend
+        run: |
+          chmod +x mvnw
+          ./mvnw -B -ntp test
+      - name: 上传测试报告（保留成功/失败记录）
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: backend-test-reports-${{ github.sha }}
+          path: backend/target/surefire-reports
+          if-no-files-found: ignore
+
+  # ---------------------------------------------------------------
+  # ② 前端：安装依赖 + 编译
+  # ---------------------------------------------------------------
+  build-frontend:
+    name: ② 前端安装依赖并编译
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: 取代码
+        uses: actions/checkout@v5
+      - name: 安装 Node.js 20
+        uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: 安装依赖
+        working-directory: frontend
+        run: npm ci
+      - name: 编译
+        working-directory: frontend
+        run: npm run build
+      - name: 上传构建产物（保留成功/失败记录）
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: frontend-dist-${{ github.sha }}
+          path: frontend/dist
+          if-no-files-found: ignore
+
+  # ---------------------------------------------------------------
+  # ③ 制作并推送版本化镜像（仅当 ① ② 全部通过）
+  # ---------------------------------------------------------------
+  build-push-images:
+    name: ③ 构建并推送镜像 1.0.${{ github.run_number }}
+    needs: [test-backend, build-frontend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      image_repo: ${{ steps.lowerrepo.outputs.repo }}
+    steps:
+      - name: 取代码
+        uses: actions/checkout@v5
+      - name: 计算镜像仓库名（GHCR 要求全小写）
+        id: lowerrepo
+        run: echo "repo=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+      - name: 安装 JDK 17（打包后端 jar）
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: 打包后端 jar（原生执行，产物平台无关）
+        working-directory: backend
+        run: |
+          chmod +x mvnw
+          ./mvnw -B -ntp package -DskipTests
+      - name: 安装 Node.js 20（构建前端产物）
+        uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: 构建前端 dist（原生执行，产物平台无关）
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+      - name: 准备镜像构建上下文（jar / dist / nginx 配置）
+        run: |
+          mkdir -p imgctx/backend imgctx/frontend
+          cp backend/target/*.jar imgctx/backend/app.jar
+          # 复制 dist 目录本身（与 frontend/Dockerfile.runtime 的 COPY dist 匹配）
+          cp -r frontend/dist imgctx/frontend/
+          # SPA 回退配置（次级路由刷新不 404）
+          cp deploy/nginx.spa.conf imgctx/frontend/nginx.spa.conf
+          # 产物校验：缺失/为空立即失败，避免 buildx 阶段报费解的 "/dist": not found
+          [ -s imgctx/backend/app.jar ] || { echo "::error::后端 jar 未生成（backend/target/*.jar）"; exit 1; }
+          [ -d imgctx/frontend/dist ] || { echo "::error::前端 dist 未生成（frontend/dist）"; exit 1; }
+          [ -s imgctx/frontend/nginx.spa.conf ] || { echo "::error::nginx.spa.conf 未生成"; exit 1; }
+          echo "== 镜像构建上下文 =="
+          ls -lh imgctx/backend
+          ls imgctx/frontend/dist | head -5
+      - name: 准备 QEMU（多架构构建模拟）
+        uses: docker/setup-qemu-action@v3
+      - name: 准备 Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: 登录 GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: 构建并推送后端镜像（amd64 + arm64，仅 COPY jar）
+        uses: docker/build-push-action@v6
+        with:
+          context: imgctx/backend
+          file: backend/Dockerfile.runtime
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ghcr.io/${{ steps.lowerrepo.outputs.repo }}/backend:${{ env.IMAGE_VERSION }}
+            ghcr.io/${{ steps.lowerrepo.outputs.repo }}/backend:sha-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: 构建并推送前端镜像（amd64 + arm64，仅 COPY dist）
+        uses: docker/build-push-action@v6
+        with:
+          context: imgctx/frontend
+          file: frontend/Dockerfile.runtime
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ghcr.io/${{ steps.lowerrepo.outputs.repo }}/frontend:${{ env.IMAGE_VERSION }}
+            ghcr.io/${{ steps.lowerrepo.outputs.repo }}/frontend:sha-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ---------------------------------------------------------------
+  # ④ 部署到服务器 Kubernetes（仅当 ③ 通过）
+  # ---------------------------------------------------------------
+  deploy:
+    name: ④ 部署到服务器 Kubernetes
+    needs: build-push-images
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SERVER_CONFIGURED: ${{ secrets.SERVER_HOST != '' }}
+    steps:
+      - name: 取代码
+        uses: actions/checkout@v5
+      - name: 校验服务器 Secrets 是否已配置
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+        run: |
+          if [ -z "$SERVER_HOST" ]; then
+            echo "::error::未配置 SERVER_HOST。请按 README「GitHub Secrets 配置」添加 SERVER_HOST / SERVER_USER / SERVER_SSH_KEY（或 SERVER_PASSWORD），然后重新触发流水线。"
+            exit 1
+          fi
+      - name: 打包部署文件
+        run: tar czf lightmark-deploy.tar.gz scripts deploy/k8s database/lightmark.sql .env.example
+      - name: 上传部署文件到服务器
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          port: ${{ secrets.SERVER_PORT || '22' }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: lightmark-deploy.tar.gz
+          target: /tmp
+      - name: SSH 执行 Kubernetes 部署
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          port: ${{ secrets.SERVER_PORT || '22' }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            set -e
+            CICD_DIR="$HOME/lightmark-cicd"
+            rm -rf "$CICD_DIR" && mkdir -p "$CICD_DIR"
+            tar xzf /tmp/lightmark-deploy.tar.gz -C "$CICD_DIR"
+            cd "$CICD_DIR"
+            bash scripts/deploy-k8s.sh
+          envs: TAG,REGISTRY,REPO,COMMIT_SHA,GHCR_USERNAME,GHCR_PAT,SERVER_ENV_BASE64,INGRESS_HOST,CERT_DIR,DEPLOY_DIR
+        env:
+          TAG: ${{ env.IMAGE_VERSION }}
+          REGISTRY: ${{ env.IMAGE_REGISTRY }}
+          REPO: ${{ needs.build-push-images.outputs.image_repo }}
+          COMMIT_SHA: ${{ github.sha }}
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          GHCR_PAT: ${{ secrets.GHCR_PAT }}
+          SERVER_ENV_BASE64: ${{ secrets.SERVER_ENV_BASE64 }}
+          INGRESS_HOST: ${{ vars.INGRESS_HOST }}
+          CERT_DIR: ${{ vars.CERT_DIR }}
+          DEPLOY_DIR: ${{ vars.DEPLOY_DIR }}
+      - name: 读取服务器部署历史记录（成功/失败均保留）
+        if: ${{ always() && env.SERVER_CONFIGURED == 'true' }}
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          port: ${{ secrets.SERVER_PORT || '22' }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            echo "===== 服务器部署历史 ($(hostname)) ====="
+            cat "${DEPLOY_DIR:-$HOME/lightmark}/deploy-history.log" 2>/dev/null || echo "(暂无部署历史记录)"
+          envs: DEPLOY_DIR
+
+  # ---------------------------------------------------------------
+  # ⑤ 健康检查（仅当 ④ 通过；失败即整个流水线失败）
+  #   - 服务器端：带重试断言后端 UP / 首页含 Vue 挂载点 / 静态资源可加载
+  #   - 公网入口：按浏览器路径（TLS + 域名 Host + 路由）直连服务器验证
+  # ---------------------------------------------------------------
+  health-check:
+    name: ⑤ 健康检查
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: 服务器端健康检查（Ingress 入口，带重试与断言）
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          port: ${{ secrets.SERVER_PORT || '22' }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            set -e
+            cd "$HOME/lightmark-cicd"
+            HC_RETRIES=20 HC_SLEEP=15 bash scripts/healthcheck.sh "https://127.0.0.1" "$INGRESS_HOST"
+          envs: INGRESS_HOST
+      - name: 浏览器入口验证（TLS + 域名 + 路由，直连服务器）
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          INGRESS_HOST: ${{ vars.INGRESS_HOST }}
+        run: |
+          HOST="${INGRESS_HOST:-lightmark.ortus.top}"
+          echo "验证入口: https://$HOST （--resolve 到 $SERVER_HOST）"
+          # 后端：浏览器路径下 /api/health 必须返回 UP
+          curl -fsS --max-time 20 --resolve "$HOST:443:$SERVER_HOST" "https://$HOST/api/health" | grep -q '"UP"'
+          # 前端：首页 200 且含 Vue 挂载点（浏览器可打开）
+          curl -fsS --max-time 20 --resolve "$HOST:443:$SERVER_HOST" -o /tmp/lm-index.html "https://$HOST/"
+          grep -q 'id="app"' /tmp/lm-index.html
+          rm -f /tmp/lm-index.html
+          echo "浏览器入口 https://$HOST 可访问（后端 UP + 首页含 Vue 挂载点）✓"
