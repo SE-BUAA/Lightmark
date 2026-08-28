@@ -1,154 +1,471 @@
-# API 集成测试报告
+[toc]
 
-## 1. 测试概览
+## 测试用例编号方式及对照表
 
-- 测试目标：完成度假、酒店、火车、机票、认证与权限、AI 六个模块的集成/API 测试落地，并验证其可进入 CI 的自动化执行链路。
-- 测试时间：2026-08-28
-- 测试环境：`SpringBootTest + MockMvc + H2(MODE=MYSQL)`，Java 17 目标编译，PowerShell 执行 `mvnw`
-- 测试文件目录：`backend/src/test/api/top/ortus/lightmark/backend/`
-- 执行命令：
+首字母为测试用例所属模块，后跟 3 位十进制数。最后一位为 0 代表成功测试，为 1-9 代表失败测试。高两位代表序号。
 
-```powershell
-.\mvnw '-Dtest=VacationApiIntegrationTests,HotelApiIntegrationTests,TrainApiIntegrationTests,FlightSearchApiIntegrationTests,AuthPermissionIntegrationTests,AiApiIntegrationTests' test
-```
+模块对照表：
 
-- 执行结果：`BUILD SUCCESS`
+| 字母 | 对应模块 |
+| --- | --- |
+| V | 度假模块方法测试 |
+| H | 酒店模块方法测试 |
+| T | 火车模块方法测试 |
+| F | 机票模块方法测试 |
+| U | 用户与权限模块方法测试 |
+| A | AI 模块方法测试 |
 
-## 1.1 测试文件路径
+## 测试执行信息
 
-- 度假：`backend/src/test/api/top/ortus/lightmark/backend/VacationApiIntegrationTests.java`
-- 酒店：`backend/src/test/api/top/ortus/lightmark/backend/HotelApiIntegrationTests.java`
-- 火车：`backend/src/test/api/top/ortus/lightmark/backend/TrainApiIntegrationTests.java`
-- 认证与权限：`backend/src/test/api/top/ortus/lightmark/backend/AuthPermissionIntegrationTests.java`
-- AI：`backend/src/test/api/top/ortus/lightmark/backend/AiApiIntegrationTests.java`
-- 机票：`backend/src/test/java/top/ortus/lightmark/backend/FlightSearchApiIntegrationTests.java`
+| 项目 | 内容 |
+| --- | --- |
+| 测试时间 | `2026-08-28` |
+| 测试环境 | `SpringBootTest + MockMvc + H2(MODE=MYSQL) + Java 17` |
+| 执行命令 | `.\mvnw '-Dtest=VacationApiIntegrationTests,HotelApiIntegrationTests,TrainApiIntegrationTests,FlightSearchApiIntegrationTests,AuthPermissionIntegrationTests,AiApiIntegrationTests' test` |
+| 执行结果 | `BUILD SUCCESS` |
+| 总用例数 | `45` |
+| 通过数 | `45` |
+| 失败数 | `0` |
+| 阻塞数 | `0` |
 
-## 2. 覆盖矩阵
+测试文件路径：
 
-| 模块 | 主流程 | 备选流程 | 异常流程 | 自动化方式 | 结果 |
-| --- | --- | --- | --- | --- | --- |
-| 度假 | 筛选 -> AI 详情 -> 下单 -> 支付 -> 助手 -> 退款 | 取消险、保费计算 | 下架产品、非法手机号 | JUnit + MockMvc + H2 | 通过 |
-| 酒店 | 列表 -> 详情 -> 房型 -> 下单 -> 支付 -> 开票 | 完成入住后评价 | 未登录、非法日期 | JUnit + MockMvc + H2 | 通过 |
-| 火车 | 站点选项 -> 下单 -> 支付 -> 退款 | 学生票折扣、待支付取消 | 非法手机号 | JUnit + MockMvc + H2 | 通过 |
-| 机票 | 搜索 -> 价格日历 -> 预览 -> 下单 -> 支付 -> 退款 | 机场码搜索、直飞过滤、库存恢复 | 未登录、人数不匹配、非法支付方式 | JUnit + MockMvc + H2 | 通过 |
-| 认证与权限 | 注册 -> 登录 -> 当前用户 | 登录回写 IP/时间 | 未登录访问管理员接口、普通用户越权 | JUnit + MockMvc + H2 | 通过 |
-| AI | 酒店推荐、评论总结 | 无评论回退总结 | 未登录访问 AI 接口 | JUnit + MockMvc + H2 | 通过 |
+| 模块 | 文件路径 |
+| --- | --- |
+| 度假 | `backend/src/test/api/top/ortus/lightmark/backend/VacationApiIntegrationTests.java` |
+| 酒店 | `backend/src/test/api/top/ortus/lightmark/backend/HotelApiIntegrationTests.java` |
+| 火车 | `backend/src/test/api/top/ortus/lightmark/backend/TrainApiIntegrationTests.java` |
+| 机票 | `backend/src/test/java/top/ortus/lightmark/backend/FlightSearchApiIntegrationTests.java` |
+| 用户与权限 | `backend/src/test/api/top/ortus/lightmark/backend/AuthPermissionIntegrationTests.java` |
+| AI | `backend/src/test/api/top/ortus/lightmark/backend/AiApiIntegrationTests.java` |
 
-## 3. 模块执行结果
+## 模块方法测试
 
-### 3.1 度假产品预订 API 测试
+### 度假模块方法测试
 
-- 用例数：4
-- 结果：4 通过，0 失败
-- 关键结论：
-  - 多条件筛选返回正确产品
-  - AI 详情文案返回有效长文本
-  - 取消险、支付、助手与退款主链路可跑通
-  - 订单副作用以 `orders.extra_info` 与 `product.sold_count` 校验通过
+| 测试名称 | 多条件筛选度假产品成功 |
+| --- | --- |
+| 测试编号 | `V000` |
+| 测试函数 | `POST /api/vacations/search` |
+| 输入数据 | `{"destination":"三亚","departCity":"北京","date":"2026-06-15","minDays":5,"maxDays":5,"tags":["海岛","亲子"]}` |
+| 前置条件 | 度假商品 `201` 存在且处于上架状态。 |
+| 预期输出 | 返回符合目的地、出发地、日期、天数与标签条件的度假产品列表。 |
+| 实际输出 | `HTTP 200`，`code=0`，`data.length=1`，`data[0].id="201"`，`data[0].name="三亚海岛五日自由行"`。 |
 
-### 3.2 酒店预订 API 测试
+| 测试名称 | 度假产品 AI 详情成功 |
+| --- | --- |
+| 测试编号 | `V010` |
+| 测试函数 | `GET /api/vacations/{productId}/detail-ai` |
+| 输入数据 | 路径参数：`productId=201` |
+| 前置条件 | 度假商品 `201` 存在。 |
+| 预期输出 | 返回对应产品的 AI 文案详情，且文案非空。 |
+| 实际输出 | `HTTP 200`，`code=0`，`data.productId="201"`，`data.content` 长度大于 20。 |
 
-- 用例数：4
-- 结果：4 通过，0 失败
-- 关键结论：
-  - 酒店列表、详情、真实房型查询可跑通
-  - 下单、支付、发票申请主链路通过
-  - 完成入住后可评价并能查询评论
-  - H2 环境下已消除 MySQL JSON 函数导致的 500 问题
+| 测试名称 | 度假订单创建支付助手退款成功 |
+| --- | --- |
+| 测试编号 | `V020` |
+| 测试函数 | `POST /api/orders/vacation` -> `POST /api/orders/{orderNo}/pay` -> `GET /api/orders/vacation/{orderNo}/assistant` -> `POST /api/orders/vacation/{orderNo}/refund` |
+| 输入数据 | 创建订单：`{"productId":"201","travelerName":"张三","travelerPhone":"13900000000","travelerCount":1,"cancellationInsurance":true}`；支付：`{}`；退款：路径参数 `orderNo`。 |
+| 前置条件 | 用户已登录；度假商品 `201` 可下单；数据库中 `product.sold_count` 可正常更新。 |
+| 预期输出 | 创建订单成功并正确计算取消险；支付后状态变为已支付；助手信息生成成功；退款后状态变为已退款且库存副作用回滚。 |
+| 实际输出 | 创建时 `HTTP 200`，`code=0`，`status=0`，`payAmount=3148.95`；数据库 `orders.extra_info` 含 `"cancellationInsurance":true` 与 `"insuranceAmount":149.95`，`sold_count` 增加 1；支付后 `status=1` 且 `pickupCode` 匹配 6 位字母数字；助手接口返回 `destination="三亚"` 且文案长度大于 20；退款后 `status=4`，`paidAmount=3148.95`，`refundAmount=3148.95`，`refundRule` 包含“全额退款”；数据库中订单状态为 `4`，`sold_count` 恢复为初始值。 |
 
-### 3.3 火车票预订 API 测试
+| 测试名称 | 度假订单下单失败（产品下架与手机号非法） |
+| --- | --- |
+| 测试编号 | `V021` |
+| 测试函数 | `POST /api/orders/vacation` |
+| 输入数据 | 场景一：`{"productId":"201","travelerName":"张三","travelerPhone":"13900000000","travelerCount":1,"cancellationInsurance":false}`；场景二：`{"productId":"202","travelerName":"张三","travelerPhone":"12345","travelerCount":1,"cancellationInsurance":false}` |
+| 前置条件 | 场景一先将商品 `201` 更新为下架状态；场景二商品 `202` 处于可校验状态。 |
+| 预期输出 | 下架产品拒绝下单；非法手机号拒绝下单。 |
+| 实际输出 | 场景一：`HTTP 400`，`code=400`，`msg="度假产品不存在或已下架"`；场景二：`HTTP 400`，`code=400`，`msg="请输入正确的中国大陆手机号"`。 |
 
-- 用例数：4
-- 结果：4 通过，0 失败
-- 关键结论：
-  - 站点选项接口可正常返回
-  - 本地火车产品已支持真实下单、学生票折扣、支付、退款
-  - 取消待支付订单可恢复 `sold_count`
-  - 手机号校验异常路径已覆盖
+### 酒店模块方法测试
 
-### 3.4 机票预订 API 测试
+| 测试名称 | 酒店列表详情房型查询成功 |
+| --- | --- |
+| 测试编号 | `H000` |
+| 测试函数 | `GET /api/hotel/list` -> `GET /api/hotel/{hotelId}` -> `GET /api/hotel/{hotelId}/rooms` |
+| 输入数据 | 列表参数：`keyword=上海&page=1&size=10&sort=price_asc`；详情参数：`hotelId=2`；房型参数：`hotelId=2&checkIn=2026-12-20&checkOut=2026-12-22` |
+| 前置条件 | 酒店商品 `2`、真实房型 `21/22` 与酒店扩展信息已写入测试数据。 |
+| 预期输出 | 返回结构完整的酒店列表、详情与房型数据。 |
+| 实际输出 | 列表接口 `HTTP 200`，`code=0`，`data.total>=1`，首条记录 `id="2"`、`name="上海外滩酒店"`；详情接口 `HTTP 200`，`data.id="2"`，`starLevel=5`，`address` 包含“黄浦区”；房型接口 `HTTP 200`，`data.length=2`，首个房型 `roomId=21`、`roomName="标准大床房"`。 |
 
-- 用例数：27
-- 结果：27 通过，0 失败
-- 关键结论：
-  - 搜索、分页、机场码兼容、价格日历、下单预览、支付、取消、退款均通过
-  - 订单与库存恢复、副作用明细、AI 机票检索与退款说明均已覆盖
-  - 退款断言已改为与时间解耦的稳定校验，避免因航班日期跨期导致 CI 误报
+| 测试名称 | 酒店订单创建支付开票成功 |
+| --- | --- |
+| 测试编号 | `H010` |
+| 测试函数 | `POST /api/hotel/order` -> `POST /api/hotel/order/{orderId}/pay` -> `POST /api/hotel/order/{orderId}/invoice` |
+| 输入数据 | 创建订单：`{"roomId":21,"checkInDate":"2026-12-20","checkOutDate":"2026-12-22","roomNum":1,"pointsDeduced":0,"paymentMethod":"ALIPAY","guestList":[{"name":"张三","idCard":"110101199001011234","phone":"13900000000"}]}`；支付：`{"paymentMethod":"ALIPAY"}`；开票：`{"invoiceType":"electronic","title":"拾光旅行","taxNo":"91310000123456789A"}` |
+| 前置条件 | 用户已登录；房型 `21` 可售；发票申请表 `invoice_application` 已存在于测试库。 |
+| 预期输出 | 创建酒店订单成功；支付后状态更新；发票申请入库成功。 |
+| 实际输出 | 创建订单 `HTTP 200`，`code=0`，`payAmount=1798.00`；数据库 `orders.extra_info` 包含 `"hotelName":"上海外滩酒店"` 与 `"roomId":21`；支付后 `HTTP 200`，`data.orderId` 为创建出的订单 ID，`status=1`，`paymentMethod="ALIPAY"`；开票后 `HTTP 200`，`code=0`；数据库 `invoice_application` 中对应 `order_id` 与标题“拾光旅行”的记录数为 `1`。 |
 
-### 3.5 认证与权限 API 测试
+| 测试名称 | 酒店订单入住后评价成功 |
+| --- | --- |
+| 测试编号 | `H020` |
+| 测试函数 | `POST /api/hotel/order` -> `POST /api/hotel/order/{orderId}/pay` -> `POST /api/hotel/order/{orderId}/review` -> `GET /api/hotel/{hotelId}/reviews` |
+| 输入数据 | 创建订单：`{"roomId":22,"checkInDate":"2026-08-27","checkOutDate":"2026-08-28","roomNum":1,"pointsDeduced":0,"paymentMethod":"WECHAT","guestList":[{"name":"李四","idCard":"110101199202021234","phone":"13900000001"}]}`；支付：`{"paymentMethod":"WECHAT"}`；评价：`{"rating":5,"content":"房间整洁，出行方便，早餐也不错。"}`；查询评论：`page=1&size=20` |
+| 前置条件 | 用户已登录；入住时间满足已完成入住评价条件；酒店评论表 `review` 已可写。 |
+| 预期输出 | 完成入住后可支付并发表评价，且评论列表能查到数据。 |
+| 实际输出 | 创建订单成功；支付接口 `HTTP 200`，`data.status=2`；评价接口 `HTTP 200`，`code=0`，`data.orderId` 为当前订单，`rating=5`，`content="房间整洁，出行方便，早餐也不错。"`；评论列表 `HTTP 200`，`code=0`，`data.length>=1`。 |
 
-- 用例数：3
-- 结果：3 通过，0 失败
-- 关键结论：
-  - 注册、登录、当前用户查询主链路通过
-  - 登录后 `last_login_time` 与 `last_login_ip` 回写成功
-  - 管理员接口未登录返回 401，普通用户访问返回 403
+| 测试名称 | 酒店接口失败（未登录与日期非法） |
+| --- | --- |
+| 测试编号 | `H021` |
+| 测试函数 | `GET /api/hotel/{hotelId}` -> `POST /api/hotel/order` |
+| 输入数据 | 未登录访问详情：`hotelId=2`；非法日期下单：`{"roomId":21,"checkInDate":"2026-12-22","checkOutDate":"2026-12-20","roomNum":1,"pointsDeduced":0,"paymentMethod":"ALIPAY","guestList":[{"name":"王五","idCard":"110101199303031234","phone":"13900000002"}]}` |
+| 前置条件 | 场景一不带登录令牌；场景二带普通用户令牌。 |
+| 预期输出 | 未登录访问被拒绝；退房日期早于入住日期时下单失败。 |
+| 实际输出 | 场景一：`HTTP 401`，`code=401`，`msg="login required"`；场景二：`HTTP 400`，`code=400`，`msg="checkOutDate must be after checkInDate"`。 |
 
-### 3.6 AI 与外部接口 API 测试
+### 火车模块方法测试
 
-- 用例数：3
-- 结果：3 通过，0 失败
-- 关键结论：
-  - 酒店推荐接口可在当前环境稳定返回推荐结果
-  - 评论总结支持真实评论与无评论回退两条路径
-  - AI 酒店接口未登录保护生效
+| 测试名称 | 火车站点与日期选项查询成功 |
+| --- | --- |
+| 测试编号 | `T000` |
+| 测试函数 | `GET /api/trains/options` |
+| 输入数据 | 无 |
+| 前置条件 | 火车站点选项接口可正常访问。 |
+| 预期输出 | 返回起点站、终点站与日期候选项。 |
+| 实际输出 | `HTTP 200`，`code=0`，`data.startStations.length>5`，`data.endStations.length>5`，`data.dates.length>2`。 |
 
-## 4. 汇总结果
+| 测试名称 | 火车学生票下单支付退款成功 |
+| --- | --- |
+| 测试编号 | `T010` |
+| 测试函数 | `POST /api/orders/train` -> `POST /api/orders/train/{orderNo}/pay` -> `POST /api/orders/train/{orderNo}/refund` |
+| 输入数据 | 创建订单：`{"productId":"3","passengerName":"张三","passengerPhone":"13900000000","passengerAge":20,"seatType":"二等座","isStudent":true}`；支付与退款均使用路径参数 `orderNo`。 |
+| 前置条件 | 用户已登录；火车商品 `3` 可售；积分日志表 `points_log` 可写。 |
+| 预期输出 | 学生票折扣金额正确；支付成功；退款全额退还；积分日志与库存副作用正确。 |
+| 实际输出 | 创建订单 `HTTP 200`，`code=0`，`status=0`，`payAmount=331.80`；数据库 `orders.extra_info` 包含 `"seatType":"二等座"`、`"ticketType":"STUDENT"`、`"discountRate":0.6`、`"startStation":"北京南"`、`"endStation":"上海虹桥"`，`sold_count` 增加 1；支付后 `status=1` 且 `pickupCode` 匹配 6 位字母数字；退款后 `status=4`，`paidAmount=331.80`，`refundAmount=331.80`，`refundRule` 包含“全额退还”；数据库订单状态为 `4`，`sold_count` 恢复，`points_log` 中 `TRAIN_PAY` 与 `TRAIN_REFUND` 共 2 条。 |
 
-- 总用例数：45
-- 通过数：45
-- 失败数：0
-- 阻塞数：0
-- 总结论：本轮六模块集成/API 自动化测试已可在本地稳定执行，并具备纳入 CI 的基本条件
+| 测试名称 | 火车待支付订单取消成功 |
+| --- | --- |
+| 测试编号 | `T020` |
+| 测试函数 | `POST /api/orders/train` -> `POST /api/orders/train/{orderNo}/cancel` |
+| 输入数据 | 创建订单：`{"productId":"3","passengerName":"李四","passengerPhone":"13900000001","passengerAge":16,"seatType":"一等座","isStudent":false}`；取消使用路径参数 `orderNo`。 |
+| 前置条件 | 用户已登录；火车商品 `3` 可售。 |
+| 预期输出 | 待支付订单可取消，订单状态变化且销量恢复。 |
+| 实际输出 | 创建订单 `HTTP 200`，`code=0`，`payAmount=442.40`，创建后 `sold_count` 增加 1；取消后 `HTTP 200`，`code=0`；数据库中订单状态为 `2`，`sold_count` 恢复为初始值。 |
 
-## 5. 本轮修复与调整
+| 测试名称 | 火车订单下单失败（手机号非法） |
+| --- | --- |
+| 测试编号 | `T021` |
+| 测试函数 | `POST /api/orders/train` |
+| 输入数据 | `{"productId":"3","passengerName":"王五","passengerPhone":"12345","passengerAge":28,"seatType":"二等座"}` |
+| 前置条件 | 用户已登录。 |
+| 预期输出 | 手机号不合法时拒绝创建订单。 |
+| 实际输出 | `HTTP 400`，`code=400`，`msg="请输入正确的中国大陆手机号"`。 |
 
-- 修复酒店模块 H2 兼容问题：
-  - `ProductMapper` 不再依赖 `JSON_EXTRACT/JSON_CONTAINS`
-  - `HotelServiceImpl` 改为 Java 层解析 `extra`
-- 补齐酒店测试表与种子：
-  - `room_type`
-  - `invoice_application`
-  - `review`
-- 补齐火车测试种子：
-  - 为 `product.id=3` 增加 `extra`
-  - 增加 `category_tags` 以支持真实座位类型校验
-- 新增三套测试：
-  - `TrainApiIntegrationTests`
-  - `AuthPermissionIntegrationTests`
-  - `AiApiIntegrationTests`
-- 稳定化已有机票退款测试：
-  - 去除与当前日期强耦合的固定金额断言
+### 机票模块方法测试
 
-## 5.1 CI/CD 报告产物
+| 测试名称 | 机票搜索按航线日期舱位价格排序成功 |
+| --- | --- |
+| 测试编号 | `F000` |
+| 测试函数 | `GET /api/flights/search` |
+| 输入数据 | `departureCity=BJS&arrivalCity=SHA&departureDate=2026-06-20&adultCount=2&cabin=ECONOMY&sort=price` |
+| 前置条件 | 机票商品与基础航班数据已导入。 |
+| 预期输出 | 返回满足条件的机票列表，并按价格升序排列。 |
+| 实际输出 | `HTTP 200`，`code=0`，`data.total=2`，第一条 `name="MU5678 北京-上海"`，第二条 `name="CA1234 北京-上海"`。 |
 
-- `mvn test` 默认生成机器可读测试报告：
-  - JUnit XML：`backend/target/surefire-reports/TEST-*.xml`
-  - 控制台文本：`backend/target/surefire-reports/*.txt`
-- `mvn verify` 额外生成可直接打开的 HTML 报告：
-  - HTML：`backend/target/test-report-html/surefire.html`
-- CI/CD 建议归档路径：
-  - 必选：`backend/target/surefire-reports/**`
-  - 可选：`backend/target/test-report-html/**`
-- 查看方式：
-  - XML：交给 Jenkins/GitLab CI/GitHub Actions 的 JUnit 报告收集器
-  - HTML：浏览器直接打开 `backend/target/test-report-html/surefire.html`
+| 测试名称 | 机票搜索支持机场码参数成功 |
+| --- | --- |
+| 测试编号 | `F010` |
+| 测试函数 | `GET /api/flights/search` |
+| 输入数据 | `departureCity=PKX&arrivalCity=PVG&departureDate=2026-06-20&adultCount=2&cabin=ECONOMY&sort=price` |
+| 前置条件 | 航班搜索支持用机场码透传到原有城市参数。 |
+| 预期输出 | 返回机场码对应城市的正确机票列表。 |
+| 实际输出 | `HTTP 200`，`code=0`，`data.total=2`，返回结果仍为 `"MU5678 北京-上海"` 与 `"CA1234 北京-上海"`。 |
 
-## 6. 剩余风险与说明
+| 测试名称 | 机票搜索支持省市机场码列表成功 |
+| --- | --- |
+| 测试编号 | `F020` |
+| 测试函数 | `GET /api/flights/search` |
+| 输入数据 | `departureCity=PEK,PKX,BJS&arrivalCity=SHA,PVG&departureDate=2026-07-01&adultCount=1&cabin=ECONOMY&sort=price` |
+| 前置条件 | 测试数据中存在 `2026-07-01` 北京到上海的多机场航班。 |
+| 预期输出 | 返回机场码列表匹配到的机票结果。 |
+| 实际输出 | `HTTP 200`，`code=0`，`data.total=2`，第一条 `name="DBG1001 北京大兴-上海浦东"`，第二条 `name="DBG1002 北京首都-上海虹桥"`。 |
 
-- 本轮未执行 `Postman/Newman` 验收集；本次交付以六套后端自动化测试为准。
-- 火车 `search / transfer / calendar` 仍依赖外部 MCP 能力，本轮为保证 CI 稳定性，优先覆盖本地下单与订单流转链路。
-- AI 推荐与总结在测试环境可能走真实模型返回，也可能走降级路径；当前断言已按“结构正确、结果非空”设计，适合稳定回归。
-- 机票退款规则与当前时间有关，现已将用例改为稳定断言，但如果后续业务要求固定比例校验，建议补充可控时钟或固定未来测试数据。
+| 测试名称 | 机票搜索按舱位与库存过滤成功 |
+| --- | --- |
+| 测试编号 | `F030` |
+| 测试函数 | `GET /api/flights/search` |
+| 输入数据 | `departureCity=BJS&arrivalCity=SHA&departureDate=2026-06-20&adultCount=40&cabin=BUSINESS` |
+| 前置条件 | 商务舱库存不足的航班会被过滤。 |
+| 预期输出 | 仅返回满足舱位与余票条件的航班。 |
+| 实际输出 | `HTTP 200`，`code=0`，`data.total=1`，唯一结果 `name="CA1234 北京-上海"`。 |
 
-## 7. 附件
+| 测试名称 | 机票搜索空舱位参数不过滤成功 |
+| --- | --- |
+| 测试编号 | `F040` |
+| 测试函数 | `GET /api/flights/search` |
+| 输入数据 | `departureCity=BJS&arrivalCity=SHA&departureDate=2026-06-20&adultCount=1&sort=price` |
+| 前置条件 | 不传 `cabin` 时应走默认搜索逻辑。 |
+| 预期输出 | 不因空舱位参数导致结果被错误过滤。 |
+| 实际输出 | `HTTP 200`，`code=0`，`data.total=2`。 |
 
-- Maven JUnit/XML 报告目录：`backend/target/surefire-reports/`
-- Maven HTML 报告目录：`backend/target/test-report-html/`
-- 最终执行命令输出：`backend` 终端最近一次 `mvnw test` 结果
+| 测试名称 | 机票搜索分页成功 |
+| --- | --- |
+| 测试编号 | `F050` |
+| 测试函数 | `GET /api/flights/search` |
+| 输入数据 | `departureCity=BJS&departureDate=2026-06-20&page=2&size=1&sort=departureTime` |
+| 前置条件 | 当日存在至少 3 条从北京出发的航班。 |
+| 预期输出 | 返回第二页单条结果并携带正确分页信息。 |
+| 实际输出 | `HTTP 200`，`code=0`，`data.total=3`，`page=2`，`size=1`，`list.length=1`，该条航班名称为 `"CZ9001 北京-广州"`。 |
 
-## 8. 结论
+| 测试名称 | 机票详情查询成功 |
+| --- | --- |
+| 测试编号 | `F060` |
+| 测试函数 | `GET /api/flights/{productId}` |
+| 输入数据 | 路径参数：`productId=1` |
+| 前置条件 | 商品 `1` 为机票商品。 |
+| 预期输出 | 返回机票商品详情与扩展信息。 |
+| 实际输出 | `HTTP 200`，`code=0`，`data.id="1"`，`data.product_type="FLIGHT"`，`data.name="CA1234 北京-上海"`，`data.extra` 包含 `departureCity`。 |
 
-- 六个目标模块均已完成实际测试执行。
-- 本轮交付结果为：`45/45` 通过，`0` 失败。
-- 当前版本可进入 CI 的后端自动化回归阶段。
+| 测试名称 | 机票详情查询失败（非机票商品） |
+| --- | --- |
+| 测试编号 | `F071` |
+| 测试函数 | `GET /api/flights/{productId}` |
+| 输入数据 | 路径参数：`productId=2` |
+| 前置条件 | 商品 `2` 不是机票商品。 |
+| 预期输出 | 拒绝把非机票商品当作机票详情返回。 |
+| 实际输出 | `HTTP 400`，`code=404`，`msg="flight not found"`。 |
+
+| 测试名称 | 机票详情查询失败（商品不存在） |
+| --- | --- |
+| 测试编号 | `F081` |
+| 测试函数 | `GET /api/flights/{productId}` |
+| 输入数据 | 路径参数：`productId=99999` |
+| 前置条件 | 商品 `99999` 不存在。 |
+| 预期输出 | 返回机票不存在错误。 |
+| 实际输出 | `HTTP 400`，`code=404`，`msg="flight not found"`。 |
+
+| 测试名称 | 机票价格日历 30 天查询成功 |
+| --- | --- |
+| 测试编号 | `F090` |
+| 测试函数 | `GET /api/flights/price-calendar` |
+| 输入数据 | `departureCity=BJS&arrivalCity=SHA&startDate=2026-06-20` |
+| 前置条件 | 价格日历接口可基于起止城市返回未来价格。 |
+| 预期输出 | 返回 30 天价格日历，并给出当天最低价。 |
+| 实际输出 | `HTTP 200`，`code=0`，`data.days.length=30`，首日 `date="2026-06-20"`，`lowestPrice=520.00`，`available=true`。 |
+
+| 测试名称 | 机票价格日历一年范围查询成功 |
+| --- | --- |
+| 测试编号 | `F100` |
+| 测试函数 | `GET /api/flights/price-calendar` |
+| 输入数据 | `departureCity=BJS&arrivalCity=SHA&startDate=2026-05-28&days=365` |
+| 前置条件 | 价格日历支持最大 365 天查询。 |
+| 预期输出 | 返回全年价格趋势。 |
+| 实际输出 | `HTTP 200`，`code=0`，`data.days.length=365`，`days[0].date="2026-05-28"`，`days[34].date="2026-07-01"` 且 `lowestPrice=560.00`，`days[79].date="2026-08-15"` 且 `lowestPrice=610.00`，`days[364].date="2027-05-27"`。 |
+
+| 测试名称 | 机票价格日历支持机场码列表成功 |
+| --- | --- |
+| 测试编号 | `F110` |
+| 测试函数 | `GET /api/flights/price-calendar` |
+| 输入数据 | `departureCity=PEK,PKX,BJS&arrivalCity=SHA,PVG&startDate=2026-07-01&days=5` |
+| 前置条件 | 多机场价格聚合能力可用。 |
+| 预期输出 | 返回机场码列表对应日期区间内的最低价。 |
+| 实际输出 | `HTTP 200`，`code=0`，`data.days.length=5`，首日 `date="2026-07-01"`，`lowestPrice=560.00`；末日 `date="2026-07-05"`，`lowestPrice=420.00`。 |
+
+| 测试名称 | 机票价格日历超长范围自动截断成功 |
+| --- | --- |
+| 测试编号 | `F120` |
+| 测试函数 | `GET /api/flights/price-calendar` |
+| 输入数据 | `departureCity=BJS&arrivalCity=SHA&startDate=2026-05-28&days=999` |
+| 前置条件 | 接口对超出一年范围的请求存在保护。 |
+| 预期输出 | 实际返回的日期数被限制到一年。 |
+| 实际输出 | `HTTP 200`，`code=0`，`data.days.length=365`。 |
+
+| 测试名称 | 机票价格日历直飞过滤成功 |
+| --- | --- |
+| 测试编号 | `F130` |
+| 测试函数 | `GET /api/flights/price-calendar` |
+| 输入数据 | 场景一：`departureCity=PKX&arrivalCity=PVG&startDate=2026-07-05&directOnly=true`；场景二：`departureCity=PKX&arrivalCity=PVG&startDate=2026-07-05` |
+| 前置条件 | `2026-07-05` 该航线仅有经停航班。 |
+| 预期输出 | 开启直飞过滤时当天无票；关闭直飞过滤时能返回最低价。 |
+| 实际输出 | 场景一：`HTTP 200`，`code=0`，首日 `lowestPrice=0`，`available=false`；场景二：`HTTP 200`，首日 `lowestPrice=420.00`，`available=true`。 |
+
+| 测试名称 | 机票搜索接口直飞过滤成功 |
+| --- | --- |
+| 测试编号 | `F140` |
+| 测试函数 | `GET /api/flights/search` |
+| 输入数据 | 场景一：`departureCity=PKX&arrivalCity=PVG&departureDate=2026-07-05&adultCount=1&cabin=ECONOMY&directOnly=true`；场景二：相同参数但不传 `directOnly` |
+| 前置条件 | 同一航线仅有经停航班数据。 |
+| 预期输出 | 开启直飞过滤时无结果；关闭过滤后能返回经停航班。 |
+| 实际输出 | 场景一：`HTTP 200`，`code=0`，`data.total=0`；场景二：`HTTP 200`，`data.total=1`，`data.list[0].name="DBG1010 北京大兴-上海浦东 经停济南"`。 |
+
+| 测试名称 | 机票下单预览金额计算成功 |
+| --- | --- |
+| 测试编号 | `F150` |
+| 测试函数 | `POST /api/flights/order/preview` |
+| 输入数据 | `{"productId":"1","cabin":"ECONOMY","adultCount":2,"insurance":true,"extraBaggage":true,"seatSelection":true,"pointsDeduct":1000}` |
+| 前置条件 | 商品 `1` 支持机票订单预览。 |
+| 预期输出 | 返回机票金额、税费、服务费、积分抵扣与应付总额。 |
+| 实际输出 | `HTTP 200`，`code=0`，`passengerCount=2`，`ticketAmount=1360.00`，`taxAmount=260.00`，`serviceAmount=260.00`，`pointsAmount=10.00`，`payAmount=1870.00`。 |
+
+| 测试名称 | 机票订单明细持久化成功 |
+| --- | --- |
+| 测试编号 | `F160` |
+| 测试函数 | `POST /api/flights/order` |
+| 输入数据 | `{"productId":"1","cabin":"BUSINESS","adultCount":1,"passengers":[{"name":"赵六","idType":"ID_CARD","idNo":"110101199303031234","phone":"13800000003"}],"insurance":true,"extraBaggage":true,"seatSelection":true}` |
+| 前置条件 | 用户已登录；机票订单明细表可写。 |
+| 预期输出 | 订单创建成功，并在数据库中落地乘机人与附加服务信息。 |
+| 实际输出 | 创建订单 `HTTP 200`，`code=0`；数据库 `flight_order_detail.passenger_list` 内容包含 `"passengerCount":1`、`"cabin":"BUSINESS"`、`"insurance":true`、`"extraBaggage":true`、`"seatSelection":true` 和乘机人姓名“赵六”。 |
+
+| 测试名称 | 机票下单预览失败（乘机人数不匹配） |
+| --- | --- |
+| 测试编号 | `F171` |
+| 测试函数 | `POST /api/flights/order/preview` |
+| 输入数据 | `{"productId":"1","cabin":"ECONOMY","adultCount":2,"childCount":1,"passengers":[{"name":"张三","idType":"ID_CARD","idNo":"110101199001011234","phone":"13800000000"}]}` |
+| 前置条件 | 请求中成人和儿童数量之和为 3，但仅提供 1 名乘机人。 |
+| 预期输出 | 拒绝预览并返回乘机人数不匹配错误。 |
+| 实际输出 | `HTTP 400`，`code=400`，`msg="passenger list size does not match adultCount and childCount"`。 |
+
+| 测试名称 | 机票多乘机人扣减库存并取消恢复成功 |
+| --- | --- |
+| 测试编号 | `F180` |
+| 测试函数 | `POST /api/flights/order` -> `POST /api/orders/{orderNo}/cancel` |
+| 输入数据 | 创建订单：`{"productId":"4","cabin":"ECONOMY","adultCount":2,"childCount":1,"passengers":[{"name":"张三","idType":"ID_CARD","idNo":"110101199001011234","phone":"13800000000"},{"name":"李四","idType":"ID_CARD","idNo":"110101199202021234","phone":"13800000001"},{"name":"王小明","idType":"ID_CARD","idNo":"110101201805051234","phone":"13800000002"}]}`；取消：`{"reason":"调试取消"}` |
+| 前置条件 | 用户已登录；商品 `4` 库存充足。 |
+| 预期输出 | 下单按 3 位乘机人扣减库存，取消后库存恢复。 |
+| 实际输出 | 创建订单 `HTTP 200`，`data.pay_amount=1950.00`；数据库商品 `4` 的 `stock` 从初始值减少 3；取消后 `HTTP 200`，`data=true`；数据库 `stock` 恢复至初始值。 |
+
+| 测试名称 | 机票订单创建失败（未登录） |
+| --- | --- |
+| 测试编号 | `F191` |
+| 测试函数 | `POST /api/flights/order` |
+| 输入数据 | `{"productId":"4","adultCount":1,"cabin":"ECONOMY"}` |
+| 前置条件 | 请求不带登录令牌。 |
+| 预期输出 | 未登录时拒绝创建机票订单。 |
+| 实际输出 | `HTTP 401`，`code=401`，`msg="unauthorized"`。 |
+
+| 测试名称 | 机票订单创建待支付并支付成功 |
+| --- | --- |
+| 测试编号 | `F200` |
+| 测试函数 | `POST /api/flights/order` -> `POST /api/orders/{orderNo}/pay` -> `POST /api/payment/callback` -> `GET /api/orders/{orderNo}/status` |
+| 输入数据 | 创建订单：`{"productId":"4","cabin":"ECONOMY","passengers":[{"name":"张三","idType":"ID_CARD","idNo":"110101199001011234","phone":"13800000000"}],"insurance":true}`；支付：`{"paymentMethod":"ALIPAY"}`；支付回调：`{"orderNo":"{orderNo}","paymentMethod":"ALIPAY"}` |
+| 前置条件 | 用户已登录；订单与支付回调链路可用。 |
+| 预期输出 | 创建订单后状态为待支付；支付成功后出票；重复支付请求保持幂等；订单状态接口可返回已出票。 |
+| 实际输出 | 创建订单 `HTTP 200`，`code=0`，`order_no` 非空，`status=0`，`pay_amount=680.00`；首次支付后 `status=1`，`ticketNo` 非空，`pointsAdded>0`；再次支付仍 `HTTP 200`，`status=1`，`paymentMethod="ALIPAY"`，`pointsAdded=0`；支付回调 `HTTP 200`，`code=0`，`data=true`；状态查询返回 `statusText="已出票"`，`paymentMethod="ALIPAY"`。 |
+
+| 测试名称 | 机票订单积分支付成功 |
+| --- | --- |
+| 测试编号 | `F210` |
+| 测试函数 | `POST /api/flights/order` -> `POST /api/orders/{orderNo}/pay` |
+| 输入数据 | 创建订单：`{"productId":"4","adultCount":1,"cabin":"ECONOMY"}`；支付：`{"paymentMethod":"POINTS"}` |
+| 前置条件 | 用户已登录。 |
+| 预期输出 | 支持使用积分方式完成支付。 |
+| 实际输出 | 支付接口 `HTTP 200`，`code=0`，`status=1`，`paymentMethod="POINTS"`，`ticketNo` 非空。 |
+
+| 测试名称 | 机票订单支付失败（不支持的支付方式） |
+| --- | --- |
+| 测试编号 | `F221` |
+| 测试函数 | `POST /api/flights/order` -> `POST /api/orders/{orderNo}/pay` |
+| 输入数据 | 创建订单：`{"productId":"4","adultCount":1,"cabin":"ECONOMY"}`；支付：`{"paymentMethod":"CASH"}` |
+| 前置条件 | 用户已登录；订单已创建但未支付。 |
+| 预期输出 | 使用不支持的支付方式时返回错误。 |
+| 实际输出 | 支付接口 `HTTP 400`，`code=400`，`msg="unsupported payment method"`。 |
+
+| 测试名称 | 待支付机票订单取消成功 |
+| --- | --- |
+| 测试编号 | `F230` |
+| 测试函数 | `POST /api/flights/order` -> `POST /api/orders/{orderNo}/cancel` -> `GET /api/orders/{orderNo}/status` |
+| 输入数据 | 创建订单：`{"productId":"4","adultCount":1,"cabin":"ECONOMY"}`；取消：`{"reason":"行程变化"}` |
+| 前置条件 | 用户已登录；订单仍处于待支付状态。 |
+| 预期输出 | 待支付订单可成功取消，并能查询到取消原因。 |
+| 实际输出 | 取消接口 `HTTP 200`，`data=true`；状态查询 `HTTP 200`，`data.status=2`，`data.cancelReason="行程变化"`。 |
+
+| 测试名称 | 已出票机票订单退款计算成功 |
+| --- | --- |
+| 测试编号 | `F240` |
+| 测试函数 | `POST /api/flights/order` -> `POST /api/orders/{orderNo}/pay` -> `POST /api/orders/{orderNo}/refund` |
+| 输入数据 | 创建订单：`{"productId":"1110","adultCount":1,"cabin":"ECONOMY"}`；支付：`{"paymentMethod":"WECHAT"}`；退款：路径参数 `orderNo` |
+| 前置条件 | 测试时钟固定到起飞前 24 小时以上，退款规则按稳定分支执行。 |
+| 预期输出 | 已出票订单退款成功，退款金额与手续费之和等于原支付金额。 |
+| 实际输出 | 创建订单成功并记录 `pay_amount`；支付后 `HTTP 200`；退款接口 `HTTP 200`，`code=0`，`data.status=4`；断言 `refundAmount>0`，`serviceFee>=0`，且 `refundAmount + serviceFee = payAmount`。 |
+
+| 测试名称 | AI 机票检索成功 |
+| --- | --- |
+| 测试编号 | `F250` |
+| 测试函数 | `POST /ai/search/flight` |
+| 输入数据 | `{"query":"帮我找 2026-06-20 从北京到上海的经济舱直飞机票"}` |
+| 前置条件 | AI 航班检索接口可调用机票搜索服务。 |
+| 预期输出 | 返回包含匹配航班内容的 AI 检索结果。 |
+| 实际输出 | `HTTP 200`，`code=0`，`data.content` 包含 `"MU5678 北京-上海"`。 |
+
+| 测试名称 | AI 退款说明生成成功 |
+| --- | --- |
+| 测试编号 | `F260` |
+| 测试函数 | `POST /api/flights/order` -> `POST /ai/explain/refund` |
+| 输入数据 | 先创建订单：`{"productId":"1","adultCount":1,"cabin":"ECONOMY"}`；再请求退款说明：`{"orderNo":"{orderNo}"}` |
+| 前置条件 | 用户已登录；订单号可用于退款说明接口。 |
+| 预期输出 | 返回该订单对应的退款说明文本。 |
+| 实际输出 | `HTTP 200`，`code=0`，`data.content` 包含“预计退款金额”。 |
+
+### 用户与权限模块方法测试
+
+| 测试名称 | 注册登录并获取当前用户成功 |
+| --- | --- |
+| 测试编号 | `U000` |
+| 测试函数 | `POST /api/auth/register` -> `POST /api/auth/login` -> `GET /api/user/current` |
+| 输入数据 | 注册：`{"email":"auth{timestamp}@qq.com","password":"Password!1","nickname":"用户{timestamp}","verificationCode":"123456","captchaCode":"ABCD","privacyAccepted":true}`；登录：`{"account":"auth{timestamp}@qq.com","password":"Password!1","captchaCode":"QWER","privacyAccepted":true}` |
+| 前置条件 | 数据库中已预置对应邮箱验证码；注册与登录会话中分别写入验证码 `ABCD`、`QWER`。 |
+| 预期输出 | 注册成功；登录返回用户令牌；当前用户接口能返回 USER 身份。 |
+| 实际输出 | 注册接口 `HTTP 200`，`code=0`，`data.email` 等于注册邮箱；登录接口 `HTTP 200`，`code=0`，`data.identity="USER"`，并返回非空 `token`；当前用户接口 `HTTP 200`，`code=0`，`data.identity="USER"`，`data.roles[0]="USER"`。 |
+
+| 测试名称 | 登录回写最近登录时间与 IP 成功 |
+| --- | --- |
+| 测试编号 | `U010` |
+| 测试函数 | `POST /api/auth/register` -> `POST /api/auth/login` |
+| 输入数据 | 注册：`{"email":"login{timestamp}@qq.com","password":"Password!1","nickname":"回写{timestamp}","verificationCode":"654321","captchaCode":"ZXCV","privacyAccepted":true}`；登录请求头：`X-Forwarded-For: 203.0.113.9, 10.0.0.1`；登录体：`{"account":"login{timestamp}@qq.com","password":"Password!1","captchaCode":"TYUI","privacyAccepted":true}` |
+| 前置条件 | 数据库中已插入验证码 `654321`；注册会话写入 `ZXCV`；登录会话写入 `TYUI`。 |
+| 预期输出 | 登录成功后在数据库中回写最近登录时间与真实客户端 IP。 |
+| 实际输出 | 登录接口 `HTTP 200`，`code=0`；数据库 `user.last_login_time` 非空，`user.last_login_ip="203.0.113.9"`。 |
+
+| 测试名称 | 管理员接口访问失败（未登录与普通用户越权） |
+| --- | --- |
+| 测试编号 | `U011` |
+| 测试函数 | `GET /api/admin/dashboard/summary` |
+| 输入数据 | 场景一：无 `Authorization`；场景二：普通用户令牌。 |
+| 前置条件 | 管理员汇总接口启用鉴权。 |
+| 预期输出 | 未登录返回 401；普通用户访问返回 403。 |
+| 实际输出 | 场景一：`HTTP 401`，`code=401`，`msg="unauthorized"`；场景二：`HTTP 403`，`code=403`，`msg="forbidden"`。 |
+
+### AI 模块方法测试
+
+| 测试名称 | AI 酒店推荐成功 |
+| --- | --- |
+| 测试编号 | `A000` |
+| 测试函数 | `POST /api/ai/hotel/recommend` |
+| 输入数据 | `{"userInput":"推荐上海外滩附近带早餐的高星酒店"}` |
+| 前置条件 | 用户已登录；AI 酒店推荐接口可访问。 |
+| 预期输出 | 返回推荐文案与至少一家酒店结果。 |
+| 实际输出 | `HTTP 200`，`code=0`，`data.recommendText` 非空，`data.hotels.length>=1`，首家酒店 `name="上海外滩酒店"`，`facilities.length>=1`。 |
+
+| 测试名称 | AI 酒店评论总结成功（真实评论与回退） |
+| --- | --- |
+| 测试编号 | `A010` |
+| 测试函数 | `GET /api/ai/hotel/review-summary/{hotelId}` |
+| 输入数据 | 场景一：`hotelId=2`；场景二：`hotelId=999` |
+| 前置条件 | 用户已登录；酒店 `2` 存在真实评论；酒店 `999` 走回退总结逻辑。 |
+| 预期输出 | 有评论与无评论两种场景都返回结构完整的总结结果。 |
+| 实际输出 | 场景一：`HTTP 200`，`code=0`，`data.pros.length>=1`，`data.overall` 非空；场景二：`HTTP 200`，`code=0`，`data.pros.length>=1`，`data.overall` 非空。 |
+
+| 测试名称 | AI 酒店接口访问失败（未登录） |
+| --- | --- |
+| 测试编号 | `A011` |
+| 测试函数 | `POST /api/ai/hotel/recommend` -> `GET /api/ai/hotel/review-summary/{hotelId}` |
+| 输入数据 | 推荐接口：`{"userInput":"推荐上海酒店"}`；评论总结：`hotelId=2` |
+| 前置条件 | 请求不带登录令牌。 |
+| 预期输出 | 两个 AI 酒店接口都要求登录。 |
+| 实际输出 | 推荐接口：`HTTP 401`，`code=401`，`msg="login required"`；评论总结接口：`HTTP 401`，`code=401`，`msg="login required"`。 |
+
+## 自动化测试报告产出位置
+
+| 产物类型 | 位置 | 查看方式 |
+| --- | --- | --- |
+| JUnit XML 报告 | `backend/target/surefire-reports/TEST-*.xml` | 供 Jenkins、GitLab CI、GitHub Actions 等收集 |
+| Maven 文本报告 | `backend/target/surefire-reports/*.txt` | 直接打开文本文件查看单类测试输出 |
+| Maven HTML 报告 | `backend/target/test-report-html/surefire.html` | 浏览器直接打开 HTML 页面 |
+
+## 结论
+
+本次六个目标模块的集成/API 自动化测试均已执行完成，正式结果为 `45/45` 通过，`0` 失败，当前版本已具备进入 CI/CD 后端自动化回归的基础条件。
