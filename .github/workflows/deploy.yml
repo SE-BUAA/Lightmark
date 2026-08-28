@@ -292,9 +292,10 @@ jobs:
           HOST="${INGRESS_HOST:-lightmark.ortus.top}"
           echo "验证入口: https://$HOST （--resolve 到 $SERVER_HOST）"
           # 后端：浏览器路径下 /api/health 必须返回 UP
-          curl -fsS --max-time 20 --resolve "$HOST:443:$SERVER_HOST" "https://$HOST/api/health" | grep -q '"UP"'
+          # -k：源站为 Cloudflare Origin 证书，链不完整，这里只验证路由连通性（浏览器经 Cloudflare 的证书不受影响）
+          curl -k -fsS --max-time 20 --resolve "$HOST:443:$SERVER_HOST" "https://$HOST/api/health" | grep -q '"UP"'
           # 前端：首页 200 且含 Vue 挂载点（浏览器可打开）
-          curl -fsS --max-time 20 --resolve "$HOST:443:$SERVER_HOST" -o /tmp/lm-index.html "https://$HOST/"
+          curl -k -fsS --max-time 20 --resolve "$HOST:443:$SERVER_HOST" -o /tmp/lm-index.html "https://$HOST/"
           grep -q 'id="app"' /tmp/lm-index.html
           rm -f /tmp/lm-index.html
           echo "浏览器入口 https://$HOST 可访问（后端 UP + 首页含 Vue 挂载点）✓"
