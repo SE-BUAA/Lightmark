@@ -228,11 +228,12 @@ $KUBECTL rollout status deployment/lightmark-frontend -n "$NAMESPACE" --timeout=
 
 # ---------- 6. 健康检查（重试 10 次×5s，覆盖滚动更新/数据库初始化窗口） ----------
 STAGE="healthcheck"
-if HC_RETRIES=10 bash "$SCRIPT_DIR/healthcheck.sh" "https://127.0.0.1" "$INGRESS_HOST"; then
+# 预算 20 次×15s≈300s，覆盖滚动更新/初始化窗口；权威门禁为 workflow ⑤（部署完成后执行）
+if HC_RETRIES=20 HC_SLEEP=15 bash "$SCRIPT_DIR/healthcheck.sh" "https://127.0.0.1" "$INGRESS_HOST"; then
   :
 else
   # HTTPS 不通时退回 HTTP 再验一次
-  HC_RETRIES=10 bash "$SCRIPT_DIR/healthcheck.sh" "http://127.0.0.1" "$INGRESS_HOST"
+  HC_RETRIES=20 HC_SLEEP=15 bash "$SCRIPT_DIR/healthcheck.sh" "http://127.0.0.1" "$INGRESS_HOST"
 fi
 
 log_record "SUCCESS" "health=OK"
