@@ -270,6 +270,8 @@ jobs:
     steps:
       - name: 服务器端健康检查（Ingress 入口，带重试与断言）
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          INGRESS_HOST: ${{ vars.INGRESS_HOST }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
@@ -278,7 +280,9 @@ jobs:
           script: |
             set -e
             cd "$HOME/lightmark-cicd"
-            bash scripts/healthcheck.sh "https://127.0.0.1" "$INGRESS_HOST"
+            # 必须带 Host 头（Ingress 按域名路由）；缺省 lightmark.ortus.top
+            HOST="${INGRESS_HOST:-lightmark.ortus.top}"
+            HC_RETRIES=20 HC_SLEEP=15 bash scripts/healthcheck.sh "https://127.0.0.1" "$HOST"
           envs: INGRESS_HOST
       - name: 浏览器入口验证（TLS + 域名 + 路由，直连服务器）
         env:
@@ -288,9 +292,10 @@ jobs:
           HOST="${INGRESS_HOST:-lightmark.ortus.top}"
           echo "验证入口: https://$HOST （--resolve 到 $SERVER_HOST）"
           # 后端：浏览器路径下 /api/health 必须返回 UP
-          curl -fsS --max-time 20 --resolve "$HOST:443:$SERVER_HOST" "https://$HOST/api/health" | grep -q '"UP"'
+          # -k：源站为 Cloudflare Origin 证书，链不完整，这里只验证路由连通性（浏览器经 Cloudflare 的证书不受影响）
+          curl -k -fsS --max-time 20 --resolve "$HOST:443:$SERVER_HOST" "https://$HOST/api/health" | grep -q '"UP"'
           # 前端：首页 200 且含 Vue 挂载点（浏览器可打开）
-          curl -fsS --max-time 20 --resolve "$HOST:443:$SERVER_HOST" -o /tmp/lm-index.html "https://$HOST/"
+          curl -k -fsS --max-time 20 --resolve "$HOST:443:$SERVER_HOST" -o /tmp/lm-index.html "https://$HOST/"
           grep -q 'id="app"' /tmp/lm-index.html
           rm -f /tmp/lm-index.html
           echo "浏览器入口 https://$HOST 可访问（后端 UP + 首页含 Vue 挂载点）✓"

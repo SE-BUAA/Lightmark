@@ -209,10 +209,16 @@ fi
 STAGE="apply-workloads"
 $KUBECTL apply -f "$RENDER_DIR/backend.yaml" -f "$RENDER_DIR/frontend.yaml" -f "$RENDER_DIR/ingress.yaml"
 
-# 若本次只有 Secret（.env）变化而镜像 tag 未变，Pod 不会自动重建，
-# 显式重启后端使其拿到最新环境变量
+# 仅当 Secret（.env）变化而镜像 tag 未变时才显式重启后端：
+# 镜像已变化时，上面的 apply 已触发滚动更新，无需 restart（避免产生第二个 RS 造成空窗）
 STAGE="restart-backend"
-$KUBECTL rollout restart deployment/lightmark-backend -n "$NAMESPACE"
+CURRENT_IMG="$($KUBECTL get deployment lightmark-backend -n "$NAMESPACE" -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null || true)"
+if [ -n "$CURRENT_IMG" ] && [ "$CURRENT_IMG" = "$BACKEND_IMG" ]; then
+  $KUBECTL rollout restart deployment/lightmark-backend -n "$NAMESPACE"
+  echo "[OK] 后端镜像未变，已 restart 以刷新环境变量"
+else
+  echo "[OK] 后端镜像已更新（$CURRENT_IMG -> $BACKEND_IMG），跳过 restart"
+fi
 
 # ---------- 5. 等待滚动更新完成 ----------
 STAGE="rollout-backend"
@@ -220,13 +226,14 @@ $KUBECTL rollout status deployment/lightmark-backend -n "$NAMESPACE" --timeout=4
 STAGE="rollout-frontend"
 $KUBECTL rollout status deployment/lightmark-frontend -n "$NAMESPACE" --timeout=180s
 
-# ---------- 6. 健康检查 ----------
+# ---------- 6. 健康检查（重试 10 次×5s，覆盖滚动更新/数据库初始化窗口） ----------
 STAGE="healthcheck"
-if bash "$SCRIPT_DIR/healthcheck.sh" "https://127.0.0.1" "$INGRESS_HOST"; then
+# 预算 20 次×15s≈300s，覆盖滚动更新/初始化窗口；权威门禁为 workflow ⑤（部署完成后执行）
+if HC_RETRIES=20 HC_SLEEP=15 bash "$SCRIPT_DIR/healthcheck.sh" "https://127.0.0.1" "$INGRESS_HOST"; then
   :
 else
   # HTTPS 不通时退回 HTTP 再验一次
-  bash "$SCRIPT_DIR/healthcheck.sh" "http://127.0.0.1" "$INGRESS_HOST"
+  HC_RETRIES=20 HC_SLEEP=15 bash "$SCRIPT_DIR/healthcheck.sh" "http://127.0.0.1" "$INGRESS_HOST"
 fi
 
 log_record "SUCCESS" "health=OK"

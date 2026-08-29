@@ -26,18 +26,13 @@ public interface ProductMapper extends BaseMapper<Product> {
             SELECT
                 product.id AS id,
                 product.name AS name,
-                JSON_UNQUOTE(JSON_EXTRACT(product.extra, '$.address')) AS address,
-                CAST(JSON_UNQUOTE(JSON_EXTRACT(product.extra, '$.starLevel')) AS UNSIGNED) AS starLevel,
-                JSON_UNQUOTE(JSON_EXTRACT(product.extra, '$.coverImage')) AS coverImage,
-                CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(product.extra, '$.lat')), 'null') AS DECIMAL(10,6)) AS lat,
-                CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(product.extra, '$.lng')), 'null') AS DECIMAL(10,6)) AS lng,
-                JSON_EXTRACT(product.extra, '$.facilities') AS facilitiesJson,
+                product.extra AS extraJson,
                 COALESCE(MIN(rt.price), product.price, 0) AS priceMin,
                 MIN(rt.cancel_policy) AS cancelPolicy,
-                ROUND(3.5 + (CRC32(CAST(product.id AS CHAR)) % 151) / 100, 1) AS rating,
+                4.5 AS rating,
                 <choose>
                     <when test="query.lat != null and query.lng != null">
-                        ROUND((CRC32(CONCAT(CAST(product.id AS CHAR), '-', #{query.lat}, '-', #{query.lng})) % 5000) / 100, 2)
+                        0
                     </when>
                     <otherwise>
                         NULL
@@ -47,13 +42,13 @@ public interface ProductMapper extends BaseMapper<Product> {
             LEFT JOIN room_type rt ON rt.hotel_id = product.id
             ${ew.customSqlSegment}
             <if test="query.starLevel != null">
-              AND CAST(JSON_UNQUOTE(JSON_EXTRACT(product.extra, '$.starLevel')) AS UNSIGNED) = #{query.starLevel}
+              AND product.extra LIKE CONCAT('%"starLevel":', #{query.starLevel}, '%')
             </if>
             <if test="query.brand != null and query.brand != ''">
-              AND JSON_UNQUOTE(JSON_EXTRACT(product.extra, '$.brand')) = #{query.brand}
+              AND product.extra LIKE CONCAT('%"brand":"', #{query.brand}, '"%')
             </if>
             <if test="query.facility != null and query.facility != ''">
-              AND JSON_CONTAINS(JSON_EXTRACT(product.extra, '$.facilities'), JSON_QUOTE(#{query.facility}))
+              AND product.extra LIKE CONCAT('%"', #{query.facility}, '"%')
             </if>
             <if test="query.cancelPolicy != null and query.cancelPolicy != ''">
               AND rt.cancel_policy = #{query.cancelPolicy}
@@ -87,7 +82,7 @@ public interface ProductMapper extends BaseMapper<Product> {
                 <when test='query.sort != null and query.sort.equals("distance_desc") and query.lat != null and query.lng != null'>
                     ORDER BY distance DESC, product.id ASC
                 </when>
-                <otherwise>
+                    <otherwise>
                     ORDER BY product.sold_count DESC, product.id ASC
                 </otherwise>
             </choose>
@@ -101,15 +96,10 @@ public interface ProductMapper extends BaseMapper<Product> {
             SELECT
                 product.id AS id,
                 product.name AS name,
-                JSON_UNQUOTE(JSON_EXTRACT(product.extra, '$.address')) AS address,
-                CAST(JSON_UNQUOTE(JSON_EXTRACT(product.extra, '$.starLevel')) AS UNSIGNED) AS starLevel,
-                JSON_UNQUOTE(JSON_EXTRACT(product.extra, '$.coverImage')) AS coverImage,
-                CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(product.extra, '$.lat')), 'null') AS DECIMAL(10,6)) AS lat,
-                CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(product.extra, '$.lng')), 'null') AS DECIMAL(10,6)) AS lng,
-                JSON_EXTRACT(product.extra, '$.facilities') AS facilitiesJson,
+                product.extra AS extraJson,
                 COALESCE(MIN(rt.price), product.price, 0) AS priceMin,
                 MIN(rt.cancel_policy) AS cancelPolicy,
-                ROUND(3.5 + (CRC32(CAST(product.id AS CHAR)) % 151) / 100, 1) AS rating,
+                4.5 AS rating,
                 NULL AS distance
             FROM product
             LEFT JOIN room_type rt ON rt.hotel_id = product.id
@@ -218,17 +208,7 @@ public interface ProductMapper extends BaseMapper<Product> {
 
         private String name;
 
-        private String address;
-
-        private Integer starLevel;
-
-        private String coverImage;
-
-        private Double lat;
-
-        private Double lng;
-
-        private String facilitiesJson;
+        private String extraJson;
 
         private BigDecimal priceMin;
 

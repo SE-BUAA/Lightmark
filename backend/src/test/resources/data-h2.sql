@@ -1,6 +1,6 @@
 INSERT INTO `user` (id, phone, email, password, nickname, country_code, register_source, points, level, status, deleted) VALUES
-(1, '13800000000', 'admin@lightmark.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '系统管理员', '+86', 'PHONE', 0, 3, 0, 0),
-(2, '13900000000', 'user@lightmark.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '普通用户', '+86', 'PHONE', 120, 1, 0, 0);
+(1, '13800000000', 'admin@lightmark.com', '$2a$10$8.1/eMI.V.pjn4rjOsgfdOnE6sJ6oLumLHAYVtJpiXPEzOiZ993Nm', '系统管理员', '+86', 'PHONE', 0, 3, 0, 0),
+(2, '13900000000', 'user@lightmark.com', '$2a$10$8.1/eMI.V.pjn4rjOsgfdOnE6sJ6oLumLHAYVtJpiXPEzOiZ993Nm', '普通用户', '+86', 'PHONE', 120, 1, 0, 0);
 
 INSERT INTO role (id, role_name, permission) VALUES
 (1, 'ADMIN', '*'),
@@ -10,13 +10,13 @@ INSERT INTO user_role (user_id, role_id) VALUES
 (1, 1),
 (2, 2);
 
-INSERT INTO product (id, product_type, name, price, stock, sold_count, status, extra) VALUES
-(1, 'FLIGHT', 'CA1234 北京-上海', 680.00, 50, 12, 1, '{"airline":"中国国际航空","flightNo":"CA1234","departureCity":"BJS","arrivalCity":"SHA","departureDate":"2026-06-20","departureTime":"08:30","arrivalTime":"10:45","stops":0,"cabins":[{"type":"ECONOMY","name":"经济舱"},{"type":"BUSINESS","name":"商务舱"}],"baggage":"20kg","refundRule":"起飞前24小时外收取10%手续费"}'),
-(2, 'HOTEL', '上海外滩酒店', 850.00, 20, 8, 1, NULL),
-(3, 'TRAIN', 'G1次', 553.00, 200, 88, 1, NULL),
-(4, 'FLIGHT', 'MU5678 北京-上海', 520.00, 30, 20, 1, '{"airline":"东方航空","flightNo":"MU5678","departureCity":"BJS","arrivalCity":"SHA","departureDate":"2026-06-20","departureTime":"13:15","arrivalTime":"15:25","stops":0,"cabins":[{"type":"ECONOMY","name":"经济舱"}],"baggage":"20kg","refundRule":"起飞前24小时外收取15%手续费"}'),
-(5, 'FLIGHT', 'CZ9001 北京-广州', 760.00, 18, 4, 1, '{"airline":"南方航空","flightNo":"CZ9001","departureCity":"BJS","arrivalCity":"CAN","departureDate":"2026-06-20","departureTime":"09:40","arrivalTime":"12:55","stops":0,"cabins":[{"type":"ECONOMY","name":"经济舱"}],"baggage":"20kg","refundRule":"特价舱不可改签"}'),
-(6, 'FLIGHT', 'HO2468 北京-上海', 430.00, 0, 2, 1, '{"airline":"吉祥航空","flightNo":"HO2468","departureCity":"BJS","arrivalCity":"SHA","departureDate":"2026-06-20","departureTime":"22:10","arrivalTime":"00:20","stops":0,"cabins":[{"type":"ECONOMY","name":"经济舱"}],"baggage":"15kg","refundRule":"不可退改"}');
+INSERT INTO product (id, product_type, name, price, stock, sold_count, status, extra, category_tags) VALUES
+(1, 'FLIGHT', 'CA1234 北京-上海', 680.00, 50, 12, 1, '{"airline":"中国国际航空","flightNo":"CA1234","departureCity":"BJS","arrivalCity":"SHA","departureDate":"2026-06-20","departureTime":"08:30","arrivalTime":"10:45","stops":0,"cabins":[{"type":"ECONOMY","name":"经济舱"},{"type":"BUSINESS","name":"商务舱"}],"baggage":"20kg","refundRule":"起飞前24小时外收取10%手续费"}', NULL),
+(2, 'HOTEL', '上海外滩酒店', 850.00, 20, 8, 1, '{"city":"上海","address":"上海市黄浦区中山东一路88号","starLevel":5,"coverImage":"https://example.com/hotel-2.jpg","lat":31.2400,"lng":121.4900,"facilities":["早餐","健身房","停车场"],"brand":"Lightmark Collection"}', NULL),
+(3, 'TRAIN', 'G1次', 553.00, 200, 88, 1, '{"start_station":"北京南","end_station":"上海虹桥","date":"2026-12-31","depart_time":"08:00","arrive_time":"12:38"}', '["商务座","一等座","二等座"]'),
+(4, 'FLIGHT', 'MU5678 北京-上海', 520.00, 30, 20, 1, '{"airline":"东方航空","flightNo":"MU5678","departureCity":"BJS","arrivalCity":"SHA","departureDate":"2026-06-20","departureTime":"13:15","arrivalTime":"15:25","stops":0,"cabins":[{"type":"ECONOMY","name":"经济舱"}],"baggage":"20kg","refundRule":"起飞前24小时外收取15%手续费"}', NULL),
+(5, 'FLIGHT', 'CZ9001 北京-广州', 760.00, 18, 4, 1, '{"airline":"南方航空","flightNo":"CZ9001","departureCity":"BJS","arrivalCity":"CAN","departureDate":"2026-06-20","departureTime":"09:40","arrivalTime":"12:55","stops":0,"cabins":[{"type":"ECONOMY","name":"经济舱"}],"baggage":"20kg","refundRule":"特价舱不可改签"}', NULL),
+(6, 'FLIGHT', 'HO2468 北京-上海', 430.00, 0, 2, 1, '{"airline":"吉祥航空","flightNo":"HO2468","departureCity":"BJS","arrivalCity":"SHA","departureDate":"2026-06-20","departureTime":"22:10","arrivalTime":"00:20","stops":0,"cabins":[{"type":"ECONOMY","name":"经济舱"}],"baggage":"15kg","refundRule":"不可退改"}', NULL);
 
 INSERT INTO product (id, product_type, name, price, stock, sold_count, status, extra, category_tags) VALUES
 (201, 'VACATION', '三亚海岛五日自由行', 2999.00, 30, 0, 1, '{"destination":"三亚","depart_city":"北京","date":"2026-06-15","days":5,"hotel_level":"五星","summary":"海景酒店连住，含接送机"}', '["海岛","自由行","亲子"]'),
@@ -27,6 +27,10 @@ INSERT INTO orders (id, order_no, user_id, order_type, pay_amount, payment_metho
 (1, 'ORD202604180001', 2, 'FLIGHT', 680.00, 'WECHAT', 1),
 (2, 'ORD202604180002', 2, 'HOTEL', 750.00, 'ALIPAY', 1),
 (3, 'ORD202604180003', 2, 'TRAIN', 553.00, 'WECHAT', 0);
+
+INSERT INTO room_type (id, hotel_id, room_name, breakfast, cancel_policy, price) VALUES
+(21, 2, '标准大床房', 1, 'FREE_CANCEL', 899.00),
+(22, 2, '高级双床房', 2, 'LIMITED_CANCEL', 999.00);
 
 INSERT INTO product (id, product_type, name, price, stock, sold_count, status, extra) VALUES
 (1001, 'FLIGHT', 'DBG1001 北京大兴-上海浦东', 560.00, 42, 8, 1, '{"airline":"中国国际航空","flightNo":"DBG1001","departureCity":"BJS","departureAirport":"PKX","arrivalCity":"SHA","arrivalAirport":"PVG","departureDate":"2026-07-01","departureTime":"07:25","arrivalTime":"09:40","stops":0,"aircraft":"A321","cabins":[{"type":"ECONOMY","name":"经济舱"},{"type":"BUSINESS","name":"商务舱"}],"baggage":"20kg","refundRule":"起飞前24小时外收取10%手续费"}'),
@@ -71,3 +75,6 @@ INSERT INTO comment (id, target_type, target_id, user_id, content) VALUES
 
 INSERT INTO question (id, user_id, title, content, answer, answer_user_id, status, answer_time) VALUES
 (1, 2, '第一次去成都住哪里方便？', '想吃小吃、坐地铁方便，预算中等。', '可以优先看春熙路、宽窄巷子或太古里周边。', 1, 1, CURRENT_TIMESTAMP);
+
+INSERT INTO review (id, order_id, product_id, target_type, user_id, rating, content, images, status, create_time) VALUES
+(1, 2, 2, 'HOTEL', 2, 5, '上海外滩酒店位置很好，去外滩和地铁站都很方便，房间也比较干净。', '[]', 1, CURRENT_TIMESTAMP);

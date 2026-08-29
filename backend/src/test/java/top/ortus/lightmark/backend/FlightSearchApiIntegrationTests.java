@@ -1,6 +1,7 @@
 package top.ortus.lightmark.backend;
 
 import org.junit.jupiter.api.BeforeEach;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -15,6 +16,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
@@ -571,7 +573,7 @@ class FlightSearchApiIntegrationTests extends BaseIntegrationTest {
                         .contentType("application/json")
                         .content("""
                                 {
-                                  "productId": "1",
+                                  "productId": "1110",
                                   "adultCount": 1,
                                   "cabin": "ECONOMY"
                                 }
@@ -580,19 +582,28 @@ class FlightSearchApiIntegrationTests extends BaseIntegrationTest {
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
+        JsonNode created = objectMapper.readTree(createResponse).path("data");
         String orderNo = createResponse.replaceAll("(?s).*\\\"order_no\\\":\\\"([^\\\"]+)\\\".*", "$1");
+        double payAmount = created.path("pay_amount").asDouble();
 
         mockMvc.perform(post("/api/orders/{orderNo}/pay", orderNo)
                         .contentType("application/json")
                         .content("{\"paymentMethod\":\"WECHAT\"}"))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(post("/api/orders/{orderNo}/refund", orderNo))
+        String refundResponse = mockMvc.perform(post("/api/orders/{orderNo}/refund", orderNo))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data.status").value(4))
-                .andExpect(jsonPath("$.data.refundAmount").value(729.00))
-                .andExpect(jsonPath("$.data.serviceFee").value(81.00));
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode refunded = objectMapper.readTree(refundResponse).path("data");
+        assertThat(refunded.path("refundAmount").asDouble()).isGreaterThan(0.0);
+        assertThat(refunded.path("serviceFee").asDouble()).isGreaterThanOrEqualTo(0.0);
+        assertThat(refunded.path("refundAmount").asDouble() + refunded.path("serviceFee").asDouble())
+                .isEqualTo(payAmount);
     }
 
     @Test

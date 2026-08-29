@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import top.ortus.lightmark.backend.common.ApiResponse;
 import top.ortus.lightmark.backend.dto.UserDTO;
+import top.ortus.lightmark.backend.dto.auth.AdminLoginRequest;
 import top.ortus.lightmark.backend.dto.auth.AuthLoginRequest;
 import top.ortus.lightmark.backend.dto.auth.AuthRegisterRequest;
 import top.ortus.lightmark.backend.dto.auth.AuthTokenDTO;
@@ -56,6 +57,15 @@ public class AuthController {
                                            HttpSession session,
                                            HttpServletRequest httpRequest) {
         return ApiResponse.ok(authService.login(request, session, httpRequest));
+    }
+
+    /**
+     * 管理后台登录：不校验图形验证码与隐私协议，但校验密码与 ADMIN 角色。
+     */
+    @PostMapping("/admin/login")
+    public ApiResponse<AuthTokenDTO> adminLogin(@Valid @RequestBody AdminLoginRequest request,
+                                                HttpServletRequest httpRequest) {
+        return ApiResponse.ok(authService.adminLogin(request, httpRequest));
     }
 
     @PostMapping("/logout")
