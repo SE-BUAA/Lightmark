@@ -103,7 +103,7 @@ export function deleteQuestionAnswer(id: string) {
 export function uploadCommunityImage(file: File) {
   const formData = new FormData()
   formData.append('file', file)
-  return http.post<{ url: string }>('/upload/image', formData, {
+  return http.post<{ objectName: string }>('/upload/image', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
     timeout: 60000
   })

@@ -1,5 +1,8 @@
 package top.ortus.lightmark.backend.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -15,6 +18,7 @@ import top.ortus.lightmark.backend.exception.ApiException;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -23,9 +27,11 @@ import java.util.Objects;
 public class CommunityServiceImpl implements CommunityService {
 
     private final JdbcTemplate jdbcTemplate;
+    private final ObjectMapper objectMapper;
 
-    public CommunityServiceImpl(JdbcTemplate jdbcTemplate) {
+    public CommunityServiceImpl(JdbcTemplate jdbcTemplate, ObjectMapper objectMapper) {
         this.jdbcTemplate = jdbcTemplate;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -92,7 +98,7 @@ public class CommunityServiceImpl implements CommunityService {
             ps.setLong(1, userId);
             ps.setString(2, post.getTitle().trim());
             ps.setString(3, defaultText(post.getContent(), ""));
-            ps.setString(4, defaultText(post.getImages(), "[]"));
+            ps.setString(4, normalizePostImages(post.getImages()));
             return ps;
         }, keyHolder);
         return getExistingPost(userId, generatedId(keyHolder));
@@ -113,7 +119,7 @@ public class CommunityServiceImpl implements CommunityService {
                 """,
                 post.getTitle().trim(),
                 defaultText(post.getContent(), ""),
-                defaultText(post.getImages(), "[]"),
+                normalizePostImages(post.getImages()),
                 id,
                 userId
         );
@@ -456,6 +462,51 @@ public class CommunityServiceImpl implements CommunityService {
         if (!StringUtils.hasText(post.getContent())) {
             throw new ApiException(400, "游记内容不能为空");
         }
+    }
+
+    private String normalizePostImages(String images) {
+        String value = defaultText(images, "[]");
+        try {
+            JsonNode root = objectMapper.readTree(value);
+            if (!root.isArray()) {
+                throw new ApiException(400, "images must be a JSON array");
+            }
+            List<String> objectNames = new ArrayList<>();
+            for (JsonNode item : root) {
+                if (!item.isTextual()) {
+                    continue;
+                }
+                String objectName = communityImageObjectName(item.asText());
+                if (StringUtils.hasText(objectName)) {
+                    objectNames.add(objectName);
+                }
+                if (objectNames.size() == 9) {
+                    break;
+                }
+            }
+            return objectMapper.writeValueAsString(objectNames);
+        } catch (JsonProcessingException ex) {
+            throw new ApiException(400, "images must be a valid JSON array");
+        }
+    }
+
+    private String communityImageObjectName(String value) {
+        String normalized = trim(value).replace('\\', '/');
+        int suffixStart = normalized.length();
+        int queryIndex = normalized.indexOf('?');
+        int fragmentIndex = normalized.indexOf('#');
+        if (queryIndex >= 0) {
+            suffixStart = Math.min(suffixStart, queryIndex);
+        }
+        if (fragmentIndex >= 0) {
+            suffixStart = Math.min(suffixStart, fragmentIndex);
+        }
+        normalized = normalized.substring(0, suffixStart);
+        if ((normalized.startsWith("http://") || normalized.startsWith("https://"))
+                && !normalized.contains("objectstorage.ap-tokyo-1.oraclecloud.com/")) {
+            return normalized;
+        }
+        return normalized.substring(normalized.lastIndexOf('/') + 1);
     }
 
     private void ensureOwner(Long userId, String ownerId, String message) {

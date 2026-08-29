@@ -362,8 +362,8 @@ public class PublicApiController {
     public ApiResponse<Map<String, Object>> uploadImage(@RequestHeader(value = "Authorization", required = false) String authorization,
                                                         @RequestPart("file") MultipartFile file) {
         Long userId = resolveUserId(authorization);
-        String url = objectStorageService.uploadPostImage(UserIdFormatter.format16(String.valueOf(userId)), file);
-        return ApiResponse.ok(Map.of("url", url));
+        String objectName = objectStorageService.uploadPostImage(UserIdFormatter.format16(String.valueOf(userId)), file);
+        return ApiResponse.ok(Map.of("objectName", objectName));
     }
 
     private <T> PageResponse<T> emptyPage() {
