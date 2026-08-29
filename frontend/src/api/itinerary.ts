@@ -44,7 +44,9 @@ export function deletePlan(id: string) {
 }
 
 export function generatePlan(data: GeneratePlanPayload) {
-  return http.post<TravelPlan>('/itinerary/ai/generate', data)
+  // AI generation can take longer than ordinary API calls. Keep the global
+  // 30s timeout for normal requests, but allow this endpoint up to 60s.
+  return http.post<TravelPlan>('/itinerary/ai/generate', data, { timeout: 60000 })
 }
 
 export function sharePlan(id: string) {
