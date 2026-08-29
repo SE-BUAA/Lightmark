@@ -101,6 +101,27 @@ CREATE TABLE payment_record (
   create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE room_type (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  hotel_id BIGINT NOT NULL,
+  room_name VARCHAR(100) NOT NULL,
+  breakfast INT DEFAULT 0,
+  cancel_policy VARCHAR(50),
+  price DECIMAL(10,2) NOT NULL,
+  create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE invoice_application (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  order_id BIGINT NOT NULL,
+  user_id BIGINT NOT NULL,
+  type VARCHAR(20) NOT NULL,
+  title VARCHAR(100) NOT NULL,
+  tax_no VARCHAR(50),
+  status TINYINT DEFAULT 0,
+  create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE points_log (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   user_id BIGINT NOT NULL,
@@ -177,5 +198,18 @@ CREATE TABLE question (
   status TINYINT DEFAULT 0,
   create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   answer_time TIMESTAMP
+);
+
+CREATE TABLE review (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  order_id BIGINT NOT NULL,
+  product_id BIGINT NOT NULL,
+  target_type VARCHAR(20),
+  user_id BIGINT NOT NULL,
+  rating INT NOT NULL,
+  content VARCHAR(1000) NOT NULL,
+  images CLOB,
+  status TINYINT DEFAULT 1,
+  create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -78,7 +78,7 @@
 import { reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
-import { loginApi } from "@/api/auth";
+import { adminLoginApi } from "@/api/auth";
 import { useAuthStore } from "@/stores/auth";
 
 const route = useRoute();
@@ -100,7 +100,7 @@ const submit = async () => {
   submitting.value = true;
 
   try {
-    const loginRes = await loginApi({
+    const loginRes = await adminLoginApi({
       account: form.account,
       password: form.password,
     });

@@ -520,11 +520,7 @@ public class HotelServiceImpl implements HotelService {
             wrapper.and(condition -> condition
                     .like(Product::getName, keyword)
                     .or()
-                    .apply("JSON_UNQUOTE(JSON_EXTRACT(extra, '$.city')) LIKE {0}", "%" + keyword + "%")
-                    .or()
-                    .apply("JSON_UNQUOTE(JSON_EXTRACT(extra, '$.landmark')) LIKE {0}", "%" + keyword + "%")
-                    .or()
-                    .apply("JSON_UNQUOTE(JSON_EXTRACT(extra, '$.address')) LIKE {0}", "%" + keyword + "%"));
+                    .like(Product::getExtra, keyword));
         }
         return wrapper;
     }
@@ -998,34 +994,50 @@ public class HotelServiceImpl implements HotelService {
     }
 
     private HotelVO toHotelVO(ProductMapper.HotelSearchRow row) {
+        Map<String, Object> extra = readExtraInfo(row.getExtraJson());
         return HotelVO.builder()
                 .id(row.getId())
                 .name(row.getName())
-                .address(row.getAddress())
-                .starLevel(row.getStarLevel())
-                // Demo rating: generated from hotel id hash in SQL when product has no rating column.
+                .address(text(extra.get("address"), null))
+                .starLevel(integerValue(extra.get("starLevel")))
                 .rating(row.getRating())
                 .priceMin(row.getPriceMin())
-                // Demo distance: generated from hotel id and incoming coordinates in SQL.
                 .distance(row.getDistance())
-                .lat(row.getLat())
-                .lng(row.getLng())
-                .coverImage(row.getCoverImage())
-                .facilities(parseFacilities(row.getFacilitiesJson()))
+                .lat(doubleValue(extra.get("lat")))
+                .lng(doubleValue(extra.get("lng")))
+                .coverImage(text(extra.get("coverImage"), null))
+                .facilities(parseFacilities(extra.get("facilities")))
                 .cancelPolicy(row.getCancelPolicy())
                 .build();
     }
 
-    private List<String> parseFacilities(String facilitiesJson) {
-        if (!StringUtils.hasText(facilitiesJson)) {
+    private List<String> parseFacilities(Object facilitiesValue) {
+        if (facilitiesValue == null || !StringUtils.hasText(String.valueOf(facilitiesValue))) {
             return Collections.emptyList();
+        }
+        if (facilitiesValue instanceof List<?> list) {
+            return list.stream().map(String::valueOf).toList();
         }
         try {
-            return objectMapper.readValue(facilitiesJson, new TypeReference<List<String>>() {
+            return objectMapper.readValue(String.valueOf(facilitiesValue), new TypeReference<List<String>>() {
             });
         } catch (Exception ex) {
-            log.warn("Failed to parse hotel facilities json: {}", facilitiesJson, ex);
+            log.warn("Failed to parse hotel facilities json: {}", facilitiesValue, ex);
             return Collections.emptyList();
         }
+    }
+
+    private Integer integerValue(Object value) {
+        if (value == null || !StringUtils.hasText(String.valueOf(value))) {
+            return null;
+        }
+        return number(value).intValue();
+    }
+
+    private Double doubleValue(Object value) {
+        if (value == null || !StringUtils.hasText(String.valueOf(value))) {
+            return null;
+        }
+        return number(value).doubleValue();
     }
 }

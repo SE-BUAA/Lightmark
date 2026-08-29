@@ -151,12 +151,17 @@
 
 ```text
 lightmark/
-├── backend/                 # Spring Boot 后端
-├── frontend/                # Vue 前端
-├── docs/                    # 课程文档 / 设计 / 测试 / 对象存储说明等
-├── deploy/                  # Nginx 配置
-├── docker-compose.yml       # Docker 部署编排
-├── deploy-server.sh         # 服务器部署脚本
+├── backend/                 # Spring Boot 后端（含 Dockerfile、Flyway 迁移）
+├── frontend/                # Vue 前端（含 Dockerfile.nginx）
+├── database/                # 数据库备份（建表 + 测试数据），容器首次启动自动读入
+├── scripts/                 # 部署 / 初始化 / 健康检查 / 备份脚本
+├── deploy/
+│   ├── nginx.conf           # Nginx 生产配置（HTTPS）
+│   ├── nginx.http.conf      # Nginx 本地开发配置（纯 HTTP）
+│   └── k8s/                 # Kubernetes 部署文件（namespace/mysql/backend/frontend/ingress）
+├── .github/workflows/       # GitHub Actions CI/CD 流水线
+├── docker-compose.yml       # Docker Compose 部署编排（MySQL + 后端 + 前端）
+├── deploy-server.sh         # 服务器部署脚本（legacy，compose 方式）
 ├── uninstall-server.sh      # 卸载脚本
 ├── package-project.ps1      # Windows 一键打包上传部署脚本
 ├── .env                     # 本地 / 部署环境变量（不入仓）
@@ -332,6 +337,36 @@ OBJECT_STORAGE_BASE_URL + "/" + objectName
 
 ## Docker 部署
 
+> 运行方式：**本地开发/单机部署（Compose）**、**服务器自动部署（GitHub Actions → Kubernetes）**。
+> Compose 默认使用**外部/本地数据库**（.env 的 `DB_HOST`），需要**容器化 MySQL**
+> （官方 `mysql:8.0.43`，首次启动自动读入 `database/lightmark.sql`）时叠加
+> `docker-compose.mysql.yml`。之后由后端 Flyway 负责增量迁移。
+
+### 0）新机器快速启动（换一台机器也能跑）
+
+```bash
+# 1. 安装 Docker Desktop / Docker Engine（含 Compose 插件）
+# 2. 克隆代码
+git clone <仓库地址> lightmark && cd lightmark
+# 3. 准备环境变量
+cp .env.example .env          # 修改 DB_PASSWORD / JWT_SECRET / DEEPSEEK_API_KEY 等
+# 4. 无 HTTPS 证书的本地环境改用纯 HTTP Nginx 配置（.env 中设置）
+#    NGINX_CONF=./deploy/nginx.http.conf
+# 5a. 用本地/外部数据库（需要自己在 .env 配 DB_HOST 指向可用 MySQL）
+docker compose up -d --build
+# 5b. 或用容器化 MySQL（首次启动自动导入 database/lightmark.sql，.env 需设 MYSQL_ROOT_PASSWORD/MYSQL_PASSWORD）
+docker compose -f docker-compose.yml -f docker-compose.mysql.yml up -d --build
+# 6. 验证
+docker compose ps
+curl -I http://127.0.0.1/api/health
+```
+
+容器化 MySQL 的数据保存在命名卷 `lightmark-mysql-data` 中；删除卷后重新启动即重新导入备份脚本：
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.mysql.yml down -v   # 慎用：-v 会删除数据库数据卷
+```
+
 ### 1）一键部署（Windows 本地执行）
 
 ```powershell
@@ -382,6 +417,124 @@ docker compose ps
 curl -k -I https://127.0.0.1/
 curl -k -I https://127.0.0.1/api/auth/captcha
 ```
+
+---
+
+## CI/CD 持续集成与自动部署（GitHub Actions → Kubernetes）
+
+向 `develop` 分支 push 一次代码，流水线自动完成：
+
+```text
+取代码 → 安装依赖 → 编译 → 单元测试 → 集成测试 → 制作镜像(带版本号) → 部署 Kubernetes → 健康检查
+```
+
+### 1）流水线阶段（逐级门禁：任何一步失败，后续部署立即停止）
+
+| 阶段 | Job | 说明 |
+| --- | --- | --- |
+| ① | `test-backend` | JDK 17 + Maven，`./mvnw test`（单元 + 集成测试，H2 内存库） |
+| ② | `build-frontend` | Node 20 + npm，`npm ci && npm run build` |
+| ③ | `build-push-images` | 仅当 ①② 通过。Buildx 构建后端 / 前端镜像并推送 GHCR，标签：`1.0.<run_number>`（版本号）+ `sha-<commit>`，**不使用 latest 部署** |
+| ④ | `deploy` | 仅当 ③ 通过。SSH 上传部署文件，服务器执行 `scripts/deploy-k8s.sh`：生成 Secret/ConfigMap（含数据库初始化脚本）、`kubectl apply`、等待滚动更新 |
+| ⑤ | `health-check` | 仅当 ④ 通过。带重试断言：后端 `/api/health` 返回 UP、首页 200 且含 Vue 挂载点、静态资源可加载；再从公网按浏览器路径（TLS+域名+路由）验证入口 |
+
+### 2）成功 / 失败记录保留
+
+- **GitHub Actions**：每次 push 的 Run 历史与完整日志（成功 / 失败均保留）；
+- **Artifact**：后端 surefire 测试报告、前端构建产物按提交号上传；
+- **服务器**：`$DEPLOY_DIR/deploy-history.log`（默认 `~/lightmark/`）追加记录每次部署的
+  时间、commit、版本号、镜像、结果（STARTED / SUCCESS / FAILED / ROLLED_BACK）；
+- **回滚**：部署或健康检查失败时，`deploy-k8s.sh` 自动回滚到上一次成功版本并记录。
+
+### 3）GitHub Secrets / Variables 配置
+
+仓库 → Settings → Secrets and variables → Actions：
+
+| 类型 | 名称 | 填什么 |
+| --- | --- | --- |
+| Secret | `SERVER_HOST` | 部署服务器 IP（如 `150.230.223.11`），**必需** |
+| Secret | `SERVER_USER` | SSH 登录用户（如 `ubuntu`） |
+| Secret | `SERVER_SSH_KEY` | SSH **私钥**内容（含 `-----BEGIN ...` 到 `-----END ...` 整段，见下方生成方法） |
+| Secret | `SERVER_PORT` | SSH 端口（默认 22，可不配） |
+| Secret | `SERVER_ENV_BASE64` | 服务器 `.env` 文件内容的 base64（新格式，见下方生成方法） |
+| Secret | `GHCR_USERNAME` / `GHCR_PAT` | GitHub 用户名 + 个人访问令牌（PAT，权限 `read:packages`；仅私有仓库需要，见下方说明） |
+| Variable | `INGRESS_HOST` | 访问域名（如 `lightmark.ortus.top`；不配则默认此值） |
+| Variable | `SERVER_DOMAIN` | 公网域名（可选，配置后流水线会从公网再测一次健康检查） |
+
+**① 生成 SSH 密钥对（`SERVER_SSH_KEY`）**
+
+```powershell
+# 本机（Windows）生成密钥对，一路回车
+ssh-keygen -t ed25519 -C "github-actions"
+# 私钥（~/.ssh/id_ed25519）内容整段粘贴到 SERVER_SSH_KEY
+Get-Content $env:USERPROFILE\.ssh\id_ed25519
+# 公钥（~/.ssh/id_ed25519.pub）追加到服务器：
+#   ssh ubuntu@<服务器IP> "mkdir -p ~/.ssh && echo '<公钥内容>' >> ~/.ssh/authorized_keys"
+```
+
+**② 生成 `SERVER_ENV_BASE64`（服务器 `.env` 的 base64）**
+
+先用 `.env.example` 为模板，新建一个**服务器专用** `.env`（新格式，必须含
+`MYSQL_ROOT_PASSWORD` / `MYSQL_PASSWORD` / `DB_USER` / `DB_PASSWORD` / `JWT_SECRET`，
+`DB_HOST=mysql`，再补上 `DEEPSEEK_API_KEY`、邮箱、对象存储等），然后：
+
+```powershell
+# Windows PowerShell 5.1 / pwsh 7 均可；自动复制 base64 到剪贴板，粘贴到 SERVER_ENV_BASE64
+powershell -ExecutionPolicy Bypass -File scripts/make-env-secret.ps1
+```
+
+> `SERVER_ENV_BASE64` 只在服务器上还没有 `~/lightmark/.env.k8s` 时自动写入一次；
+> 之后改配置请直接在服务器上编辑 `~/lightmark/.env.k8s` 再重新触发部署。
+> （k8s 流水线使用独立的 `.env.k8s`，与手动 compose 部署共用的 `~/lightmark/.env` 互不干扰，
+> 避免 `deploy-server.sh` 覆盖旧格式 `.env` 导致 k8s 校验缺变量。）
+
+**③ `GHCR_USERNAME` / `GHCR_PAT`（仅当 GitHub 仓库为私有时需要）**
+
+流水线推送镜像用的是自动的 `GITHUB_TOKEN`，不需要配置；只有 **k3s 从 GHCR 拉取私有镜像**
+需要凭据：
+
+- `GHCR_USERNAME`：你的 GitHub 用户名（能访问该仓库的账号）
+- `GHCR_PAT`：GitHub → Settings → Developer settings → Personal access tokens →
+  Generate new token，勾选 `read:packages`（或 Fine-grained token：仓库 Lightmark + Packages: Read），
+  复制生成的 `ghp_...` 粘贴
+
+仓库为公开时可不配（匿名拉取），部署脚本会自动兜底。
+
+### 4）服务器初始化（首次）
+
+```bash
+# 登录服务器，克隆仓库（或只上传 scripts/ 目录）
+sudo bash scripts/server-bootstrap.sh            # 安装 k3s（自带 Traefik）
+sudo bash scripts/server-bootstrap.sh --stop-legacy   # 需要时停止旧 docker compose 栈
+# 可选：把证书放到 /home/ubuntu/certs/（origin.crt / origin.key），否则自动生成自签名证书
+```
+
+### 5）手动触发 / 手动部署
+
+```bash
+# 仓库 Actions 页面 → CI/CD 流水线 → Run workflow（workflow_dispatch 手动触发）
+
+# 服务器上手动部署（不经流水线；REPO 为实际 GitHub 仓库，如 se-buaa/lightmark）
+TAG=1.0.123 REPO=se-buaa/lightmark bash scripts/deploy-k8s.sh
+```
+
+### 6）Kubernetes 部署文件说明（`deploy/k8s/`）
+
+| 文件 | 内容 |
+| --- | --- |
+| `namespace.yaml` | `lightmark` 命名空间 |
+| `mysql.yaml` | MySQL 8.0.43（官方镜像）+ PVC(10Gi) + Service `mysql`；ConfigMap `lightmark-init-sql` 挂载到 `/docker-entrypoint-initdb.d` 自动初始化 |
+| `backend.yaml` | Spring Boot Deployment + Service `backend`；探针 `/api/health` |
+| `frontend.yaml` | Nginx 前端 Deployment + Service `frontend` |
+| `ingress.yaml` | Traefik Ingress：`/api/*` → backend:8080，`/*` → frontend:80；TLS 证书 `lightmark-tls` |
+
+镜像占位符（`__IMAGE_BACKEND__` 等）由 `scripts/deploy-k8s.sh` 渲染为带版本号的镜像后应用。
+
+### 7）数据库初始化 / 备份 / 迁移
+
+- **建表 + 测试数据**：`database/lightmark.sql`（Compose 挂载 `./database:/docker-entrypoint-initdb.d`；k8s 打成 ConfigMap），**仅在数据卷为空时自动执行**；
+- **数据迁移**：后端 Flyway（`backend/src/main/resources/db/migration/V*.sql`），应用启动自动执行；
+- **重新导出备份**：`bash scripts/backup-db.sh`（支持 k8s / docker 两种环境）。
 
 ---
 

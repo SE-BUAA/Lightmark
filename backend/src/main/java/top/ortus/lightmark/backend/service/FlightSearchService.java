@@ -14,6 +14,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Clob;
 import java.sql.Timestamp;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -46,7 +47,7 @@ public class FlightSearchService {
     private static final int STATUS_PAID = 1;
     private static final int STATUS_CANCELED = 2;
     private static final int STATUS_REFUNDED = 4;
-    private static final List<String> PAYMENT_METHODS = List.of("WECHAT", "ALIPAY", "POINTS");
+    private static final List<String> PAYMENT_METHODS = List.of("WECHAT", "ALIPAY", "POINTS", "MOCK_PAY");
     private static final Map<String, String> AIRPORT_CITY_CODES = Map.ofEntries(
             Map.entry("PEK", "BJS"),
             Map.entry("PKX", "BJS"),
@@ -67,6 +68,14 @@ public class FlightSearchService {
         this.jdbcTemplate = jdbcTemplate;
         this.objectMapper = objectMapper;
         this.pointsMembershipService = pointsMembershipService;
+    }
+
+    // 可注入时钟，便于测试固定时间（与 OrderServiceImpl 同一模式）。
+    // 生产环境使用系统时钟，测试中可通过 setClock 固定时间，消除时间漂移导致的测试不稳定。
+    private Clock clock = Clock.systemDefaultZone();
+
+    public void setClock(Clock clock) {
+        this.clock = clock == null ? Clock.systemDefaultZone() : clock;
     }
 
     /**
@@ -257,14 +266,22 @@ public class FlightSearchService {
         }
 
         String method = normalizePaymentMethod(asString(payload == null ? null : payload.get("paymentMethod")));
-        jdbcTemplate.update(
-                "update `orders` set status = ?, payment_method = ?, pay_time = ?, update_time = ? where order_no = ?",
+        int updated = jdbcTemplate.update(
+                "update `orders` set status = ?, payment_method = ?, pay_time = ?, update_time = ? where order_no = ? and status = ?",
                 STATUS_PAID,
                 method,
                 now,
                 now,
-                orderNo
+                orderNo,
+                STATUS_PENDING
         );
+        if (updated == 0) {
+            OrderDTO latest = findOrder(orderNo);
+            if (latest.getStatus() == STATUS_PAID) {
+                return paidResult(latest.getOrder_no(), latest.getPayment_method(), 0);
+            }
+            throw new ApiException(409, "order is not payable");
+        }
         jdbcTemplate.update(
                 "insert into payment_record (order_id, transaction_id, payment_method, amount, status, callback_time, create_time) values (?, ?, ?, ?, ?, ?, ?)",
                 Long.parseLong(order.getId()),
@@ -393,12 +410,23 @@ public class FlightSearchService {
         Map<String, Object> detail = flightOrderDetail(Long.parseLong(order.getId()));
         ProductDTO flight = getDetail(asString(detail.get("product_id")));
         Map<String, Object> refundInfo = buildRefundInfo(order, flight);
+        LocalDateTime now = LocalDateTime.now(clock);
+        int updated = jdbcTemplate.update(
+                "update `orders` set status = ?, update_time = ? where order_no = ? and status = ?",
+                STATUS_REFUNDED,
+                now,
+                orderNo,
+                STATUS_PAID
+        );
+        if (updated == 0) {
+            throw new ApiException(409, "order is not refundable");
+        }
         restoreStock(order);
         jdbcTemplate.update(
-                "update `orders` set status = ?, update_time = ? where order_no = ?",
-                STATUS_REFUNDED,
-                LocalDateTime.now(),
-                orderNo
+                "update payment_record set status = ?, callback_time = ? where order_id = ?",
+                2,
+                now,
+                Long.parseLong(order.getId())
         );
         pointsMembershipService.revokePoints(order.getUser_id(), order.getId(), "FLIGHT_REFUND", order.getPay_amount());
         Map<String, Object> result = new LinkedHashMap<>(refundInfo);
@@ -732,7 +760,7 @@ public class FlightSearchService {
 
     private Map<String, Object> buildRefundInfo(OrderDTO order, ProductDTO flight) {
         LocalDateTime departureAt = departureDateTime(flight);
-        long hoursBeforeDeparture = departureAt == null ? 0 : Duration.between(LocalDateTime.now(), departureAt).toHours();
+        long hoursBeforeDeparture = departureAt == null ? 0 : Duration.between(LocalDateTime.now(clock), departureAt).toHours();
         BigDecimal rate = hoursBeforeDeparture >= 24 ? new BigDecimal("0.10") : new BigDecimal("0.30");
         BigDecimal payAmount = order.getPay_amount() == null ? BigDecimal.ZERO : order.getPay_amount();
         BigDecimal fee = payAmount.multiply(rate).setScale(2, RoundingMode.HALF_UP);

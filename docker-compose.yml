@@ -1,5 +1,25 @@
+# =====================================================================
+# Lightmark（拾光旅行）容器编排 —— 本地开发 / 课程演示 / 单机部署
+#
+# 默认只编排 backend + nginx（前端静态资源 + /api 反向代理）。
+# 数据库默认使用外部/本地数据库（.env 中的 DB_HOST/DB_USER/DB_PASSWORD）。
+# 需要「容器化 MySQL（首次启动自动导入 database/*.sql）」时，
+# 叠加 docker-compose.mysql.yml：
+#   docker compose -f docker-compose.yml -f docker-compose.mysql.yml up -d --build
+#
+# 用法：
+#   1) cp .env.example .env 并填写 DB / JWT / AI 等密钥
+#   2) 本地直接构建运行：docker compose up -d --build
+#   3) CI/CD 拉取版本化镜像：IMAGE_TAG=1.0.123 docker compose up -d
+#
+# 换一台机器：安装 Docker Desktop / Docker Engine + Compose 插件后，
+# 按 README「新机器启动」一节执行即可。
+# =====================================================================
+name: lightmark
+
 services:
   backend:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:-lightmark}/backend:${IMAGE_TAG:-local}
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -7,13 +27,14 @@ services:
     environment:
       SERVER_PORT: 8080
 
-      DB_HOST: ${DB_HOST}
+      # 数据库：默认用 .env 指定的外部/本地库；容器库模式由 docker-compose.mysql.yml 覆盖为 mysql
+      DB_HOST: ${DB_HOST:-mysql}
       DB_PORT: ${DB_PORT:-3306}
       DB_NAME: ${DB_NAME:-lightmark}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
+      DB_USER: ${DB_USER:-lightmark}
+      DB_PASSWORD: ${DB_PASSWORD:?请在 .env 中设置 DB_PASSWORD}
 
-      JWT_SECRET: ${JWT_SECRET}
+      JWT_SECRET: ${JWT_SECRET:?请在 .env 中设置 JWT_SECRET}
       JWT_ISSUER: ${JWT_ISSUER:-lightmark}
       JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-120}
 
@@ -41,6 +62,7 @@ services:
       - lightmark-net
 
   nginx:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:-lightmark}/frontend:${IMAGE_TAG:-local}
     build:
       context: ./frontend
       dockerfile: Dockerfile.nginx
@@ -48,15 +70,22 @@ services:
     depends_on:
       - backend
     ports:
-      - "80:80"
-      - "443:443"
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
     volumes:
-      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - /home/ubuntu/certs/origin.crt:/etc/nginx/certs/origin.crt:ro
-      - /home/ubuntu/certs/origin.key:/etc/nginx/certs/origin.key:ro
+      # 无证书的本地环境：NGINX_CONF=./deploy/nginx.http.conf（见 README）
+      # 有证书的服务器：CERT_DIR=/home/ubuntu/certs（需含 origin.crt / origin.key）
+      - ${NGINX_CONF:-./deploy/nginx.conf}:/etc/nginx/conf.d/default.conf:ro
+      - ${CERT_DIR:-./deploy/certs}/origin.crt:/etc/nginx/certs/origin.crt:ro
+      - ${CERT_DIR:-./deploy/certs}/origin.key:/etc/nginx/certs/origin.key:ro
     restart: unless-stopped
     networks:
       - lightmark-net
+
+volumes:
+  # 供 docker-compose.mysql.yml 使用（容器化 MySQL 的数据卷）
+  mysql-data:
+    name: lightmark-mysql-data
 
 networks:
   lightmark-net:

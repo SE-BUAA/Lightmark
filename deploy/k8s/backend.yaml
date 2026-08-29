@@ -1,0 +1,82 @@
+# =====================================================================
+# 后端 Spring Boot
+#
+# - 镜像占位符 __IMAGE_BACKEND__ 由 scripts/deploy-k8s.sh 渲染为
+#   ghcr.io/<owner>/<repo>/backend:<版本号>，保证每次部署使用带版本号的镜像
+# - 环境变量整体来自 Secret lightmark-secrets（服务器 .env 生成），
+#   其中 DB_HOST=mysql 指向同命名空间的 MySQL Service
+# - Service 名为 backend，与 docker-compose 服务名一致（nginx.conf 直接可用）
+# - 就绪/存活探针指向 /api/health
+# =====================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: lightmark
+  labels:
+    app: lightmark
+    tier: backend
+spec:
+  type: ClusterIP
+  selector:
+    app: lightmark-backend
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lightmark-backend
+  namespace: lightmark
+  labels:
+    app: lightmark
+    tier: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lightmark-backend
+  template:
+    metadata:
+      labels:
+        app: lightmark-backend
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: backend
+          image: __IMAGE_BACKEND__
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: SERVER_PORT
+              value: "8080"
+          envFrom:
+            - secretRef:
+                name: lightmark-secrets
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 90
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
