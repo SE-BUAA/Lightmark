@@ -32,7 +32,9 @@ public class AIClient {
                 .connectTimeout(Duration.ofSeconds(10))
                 .readTimeout(Duration.ofSeconds(45))
                 .build();
-        this.apiUrl = apiUrl;
+        // Keep itinerary AI calls compatible with the customer-service client:
+        // deployments may provide either a base URL (/v1) or a full endpoint.
+        this.apiUrl = normalizeChatCompletionsUrl(apiUrl);
         this.apiKey = StringUtils.hasText(apiKey) ? apiKey : deepSeekApiKey;
         this.model = model;
     }
@@ -60,5 +62,19 @@ public class AIClient {
             log.warn("AI model call failed: {}", ex.getMessage());
             return Optional.empty();
         }
+    }
+
+    private String normalizeChatCompletionsUrl(String url) {
+        if (!StringUtils.hasText(url)) {
+            return "";
+        }
+        String normalized = url.trim();
+        while (normalized.endsWith("/")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        if (normalized.endsWith("/chat/completions")) {
+            return normalized;
+        }
+        return normalized + "/chat/completions";
     }
 }
