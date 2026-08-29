@@ -460,7 +460,7 @@
 
             <div class="policy-advisor flight-mini-card">
               <div>
-                <span>智能退改签解释</span>
+                <span>智能退款解释</span>
                 <strong>{{ refundAdvisorTitle }}</strong>
               </div>
               <p>{{ refundAdvisorText }}</p>
@@ -477,7 +477,22 @@
                     <el-tag size="small" effect="plain">{{ passengerType(index) }}</el-tag>
                   </div>
                   <el-form-item label="姓名">
-                    <el-input v-model="item.name" />
+                    <el-autocomplete
+                      v-model="item.name"
+                      :fetch-suggestions="fetchTravelerSuggestions"
+                      value-key="value"
+                      clearable
+                      placeholder="输入姓名或选择常用出行人"
+                      @input="handlePassengerNameInput(item)"
+                      @select="selectSavedTraveler($event, item)"
+                    >
+                      <template #default="suggestion">
+                        <div class="traveler-suggestion">
+                          <strong>{{ suggestion.item.value }}</strong>
+                          <span v-if="suggestion.item.phone">{{ suggestion.item.phone }}</span>
+                        </div>
+                      </template>
+                    </el-autocomplete>
                   </el-form-item>
                   <el-form-item label="证件号">
                     <el-input v-model="item.idNo" />
@@ -517,37 +532,10 @@
               <el-button type="primary" :loading="orderLoading" :disabled="hasActiveOrder" @click="createOrder">
                 {{ hasActiveOrder ? "订单已创建" : "创建订单" }}
               </el-button>
-              <el-button v-if="currentOrderNo" type="success" @click="payOrder">模拟支付</el-button>
-              <el-button v-if="currentOrderNo" @click="cancelOrder">取消</el-button>
-              <el-button v-if="orderStatus?.status === 1" type="primary" @click="openChangeDialog">改签</el-button>
-              <el-button v-if="currentOrderNo" type="warning" @click="refundOrder">退款</el-button>
+              <el-button v-if="currentOrderNo && orderStatus?.status === 0" type="success" :loading="payLoading" @click="payOrder">支付</el-button>
+              <el-button v-if="currentOrderNo && orderStatus?.status === 1" :loading="refundLoading" @click="refundOrder">退款</el-button>
             </div>
 
-            <el-dialog v-model="showChangeDialog" title="机票改签" width="600px" destroy-on-close>
-              <el-alert v-if="changeResult" :closable="false" type="success" :title="changeResult.message" />
-              <template v-if="!changeResult">
-                <p class="change-hint">从以下航班中选择改签目标：</p>
-                <el-table :data="changeableFlights" stripe max-height="360">
-                  <el-table-column label="航班" min-width="140">
-                    <template #default="{ row }">{{ row.name }} / {{ row.extraInfo.airline }}</template>
-                  </el-table-column>
-                  <el-table-column label="时间" min-width="130">
-                    <template #default="{ row }">{{ row.extraInfo.departureTime }} - {{ row.extraInfo.arrivalTime }}</template>
-                  </el-table-column>
-                  <el-table-column label="价格" width="80">
-                    <template #default="{ row }">¥{{ row.price }}</template>
-                  </el-table-column>
-                  <el-table-column label="操作" width="80">
-                    <template #default="{ row }">
-                      <el-button size="small" type="primary" :loading="changing" @click="handleChangeFlight(row)">改签</el-button>
-                    </template>
-                  </el-table-column>
-                </el-table>
-              </template>
-              <template #footer v-if="changeResult">
-                <el-button type="primary" @click="showChangeDialog = false">确定</el-button>
-              </template>
-            </el-dialog>
           </template>
           <el-empty v-else description="选择一个航班后可预览订单" />
         </aside>
@@ -561,6 +549,8 @@ import { computed, defineComponent, h, nextTick, onMounted, onUnmounted, PropTyp
 import { ElButton, ElMessage, ElPopover } from "element-plus";
 import { http } from "@/utils/request";
 import { chinaAirports, chinaProvinceAirportOptions, chinaProvinceTabs, ChinaAirportOption } from "@/data/chinaAirports";
+import { getTravelers } from "@/api/user";
+import type { TravelerDTO } from "@/api/user";
 
 interface PageResponse<T> {
   total: number;
@@ -657,6 +647,12 @@ interface PassengerForm {
   idType: string;
   idNo: string;
   phone: string;
+}
+
+interface TravelerSuggestion {
+  value: string;
+  id_card: string;
+  phone?: string;
 }
 
 interface PreviewData {
@@ -767,13 +763,14 @@ const paymentMethods = [
   { label: "微信", value: "WECHAT" },
   { label: "支付宝", value: "ALIPAY" },
   { label: "积分", value: "POINTS" },
+  { label: "模拟支付", value: "MOCK_PAY" },
 ];
 const requirementSteps = [
   { title: "多条件搜索", desc: "单程/往返/多程" },
   { title: "排序筛选", desc: "价格/时间/航司/经停" },
   { title: "价格日历", desc: "低价提醒" },
   { title: "服务下单", desc: "舱位/行李/保险" },
-  { title: "支付出票", desc: "订单/退改签" },
+  { title: "支付出票", desc: "订单/退款" },
 ];
 const aiSamples = [
   "从北京到上海，明天出发，经济舱，只看直飞",
@@ -818,12 +815,15 @@ const multiSegments = ref<MultiSegment[]>([
   { id: 2, departureCity: provinceCode("上海"), arrivalCity: provinceCode("北京"), departureDate: defaultReturnDate },
 ]);
 const passengers = ref<PassengerForm[]>([createPassenger(0, "ADULT")]);
+const savedTravelers = ref<TravelerDTO[]>([]);
 const paymentMethod = ref("WECHAT");
 
 const loading = ref(false);
 const calendarLoading = ref(false);
 const previewLoading = ref(false);
 const orderLoading = ref(false);
+const payLoading = ref(false);
+const refundLoading = ref(false);
 const resultsByLeg = ref<Record<string, PageResponse<FlightProduct>>>({});
 const calendarDays = ref<CalendarDay[]>([]);
 const selectedFlight = ref<FlightProduct | null>(null);
@@ -1039,7 +1039,7 @@ const requirementCoverage = computed(() => [
   { label: "舱位服务", done: Boolean(form.cabin || orderOptions.insurance || orderOptions.extraBaggage || orderOptions.seatSelection) },
   { label: "乘客下单", done: Boolean(preview.value || currentOrderNo.value) },
   { label: "支付出票", done: Boolean(orderStatus.value?.ticketNo) },
-  { label: "退改签解释", done: Boolean(refundAdvisorNote.value || currentOrderNo.value) },
+  { label: "退款解释", done: Boolean(refundAdvisorNote.value || currentOrderNo.value) },
   { label: "自然语言搜索", done: Boolean(aiSearchSummary.value) },
 ]);
 const refundAdvisorTitle = computed(() => {
@@ -1051,7 +1051,7 @@ const refundAdvisorText = computed(() => {
   if (refundAdvisorNote.value) return refundAdvisorNote.value;
   if (!selectedFlight.value) return "选择航班并创建订单后，将结合起飞时间、订单状态和航司规则解释预计退款与手续费。";
   const rule = selectedFlight.value.extraInfo.refundRule || "以航司实际退改规则为准";
-  return `${rule}。${currentOrderNo.value ? "可根据订单状态继续刷新退改签解释。" : "创建订单后可生成更精确的订单级解释。"}`;
+  return `${rule}。${currentOrderNo.value ? "可根据订单状态继续刷新退款解释。" : "创建订单后可生成更精确的订单级解释。"}`;
 });
 
 function syncFlightTheme() {
@@ -1069,6 +1069,7 @@ onMounted(() => {
   lowPriceAlerts.value = readLowPriceAlerts();
   searchFlights();
   loadCalendar();
+  loadSavedTravelers();
 });
 
 onUnmounted(() => {
@@ -1297,7 +1298,7 @@ async function previewOrder(options: { validatePassengers?: boolean; staleGuard?
 async function createOrder() {
   if (!selectedFlight.value) return;
   if (hasActiveOrder.value) {
-    ElMessage.warning("当前航班已有未完成订单，请先支付、取消或退款后再创建新订单");
+    ElMessage.warning("当前航班已有未完成订单，请先支付或退款后再创建新订单");
     return;
   }
   if (!validatePassengerForms()) {
@@ -1315,51 +1316,33 @@ async function createOrder() {
 }
 
 async function payOrder() {
-  if (!currentOrderNo.value) return;
-  orderStatus.value = await http.post<OrderStatus>(`/orders/${currentOrderNo.value}/pay`, { paymentMethod: paymentMethod.value });
-  ElMessage.success(orderStatus.value.ticketNo ? `支付成功，客票号 ${orderStatus.value.ticketNo}` : "支付成功，已出票");
+  if (!currentOrderNo.value || payLoading.value) return;
+  payLoading.value = true;
+  try {
+    orderStatus.value = await http.post<OrderStatus>(`/orders/${currentOrderNo.value}/pay`, {
+      paymentMethod: paymentMethod.value,
+    });
+    ElMessage.success(orderStatus.value.ticketNo ? `支付成功，客票号 ${orderStatus.value.ticketNo}` : "支付成功，已出票");
+  } catch (error: unknown) {
+    ElMessage.error(error instanceof Error ? error.message : "支付失败，请稍后重试");
+    await refreshOrderStatus();
+  } finally {
+    payLoading.value = false;
+  }
 }
-
-async function cancelOrder() {
-  if (!currentOrderNo.value) return;
-  await http.post<boolean>(`/orders/${currentOrderNo.value}/cancel`, { reason: "用户取消" });
-  await refreshOrderStatus();
-  await searchFlights({ autoSelectFirst: false });
-}
-
 async function refundOrder() {
-  if (!currentOrderNo.value) return;
+  if (!currentOrderNo.value || orderStatus.value?.status !== 1 || refundLoading.value) return;
+  refundLoading.value = true;
+  try {
   const result = await http.post<{ refundAmount: number; status: number; statusText: string }>(`/orders/${currentOrderNo.value}/refund`);
   orderStatus.value = { status: result.status, statusText: result.statusText, paymentMethod: "" };
   ElMessage.success(`退款金额 ￥${result.refundAmount}`);
   await searchFlights({ autoSelectFirst: false });
-}
-
-const showChangeDialog = ref(false);
-const changing = ref(false);
-const changeResult = ref<{ message: string; oldOrderNo: string; newOrderNo: string; oldPayAmount: number; newPayAmount: number; difference: number } | null>(null);
-
-const changeableFlights = computed(() => {
-  return flights.value.filter(f => f.id !== selectedFlight.value?.id);
-});
-
-function openChangeDialog() {
-  changeResult.value = null;
-  showChangeDialog.value = true;
-}
-
-async function handleChangeFlight(target: FlightProduct) {
-  if (!currentOrderNo.value) return;
-  changing.value = true;
-  try {
-    const result = await http.post<typeof changeResult.value>(`/orders/${currentOrderNo.value}/change`, { productId: target.id });
-    changeResult.value = result;
-    ElMessage.success(result?.message || "改签成功");
+  } catch (error: unknown) {
+    ElMessage.error(error instanceof Error ? error.message : "退款失败，请稍后重试");
     await refreshOrderStatus();
-  } catch {
-    ElMessage.error("改签失败，请稍后重试");
   } finally {
-    changing.value = false;
+    refundLoading.value = false;
   }
 }
 
@@ -1369,7 +1352,7 @@ function explainRefundPolicy() {
   const status = orderStatus.value?.statusText || (currentOrderNo.value ? "待支付" : "未下单");
   const amount = preview.value?.payAmount ? `当前应付 ￥${preview.value.payAmount}` : "暂无订单金额";
   refundAdvisorNote.value = `订单状态：${status}。${amount}。退改规则：${rule}。建议在支付前确认乘机人信息；已支付订单如需退款，系统会按航司规则计算手续费并返回预计退款金额。`;
-  ElMessage.success("已生成退改签解释");
+  ElMessage.success("已生成退款解释");
 }
 
 async function refreshOrderStatus() {
@@ -1675,6 +1658,45 @@ function createPassenger(index: number, type: "ADULT" | "CHILD"): PassengerForm 
     idNo: "",
     phone: "",
   };
+}
+
+async function loadSavedTravelers() {
+  try {
+    savedTravelers.value = await getTravelers();
+  } catch {
+    // 未登录或接口不可用时，姓名仍可手动填写。
+    savedTravelers.value = [];
+  }
+}
+
+function fetchTravelerSuggestions(queryString: string, callback: (results: TravelerSuggestion[]) => void) {
+  const query = queryString.trim().toLowerCase();
+  callback(
+    savedTravelers.value
+      .filter((traveler) => {
+        const name = String(traveler.name || "");
+        return !query || name.toLowerCase().includes(query);
+      })
+      .map((traveler) => ({
+        value: traveler.name,
+        id_card: traveler.id_card || traveler.idCard || "",
+        phone: traveler.phone || "",
+      }))
+  );
+}
+
+function handlePassengerNameInput(item: PassengerForm) {
+  const matched = savedTravelers.value.some((traveler) => traveler.name === item.name);
+  if (!matched) {
+    item.idNo = "";
+    item.phone = "";
+  }
+}
+
+function selectSavedTraveler(suggestion: TravelerSuggestion, item: PassengerForm) {
+  item.name = suggestion.value;
+  item.idNo = suggestion.id_card;
+  item.phone = suggestion.phone || "";
 }
 
 function validatePassengerForms() {
