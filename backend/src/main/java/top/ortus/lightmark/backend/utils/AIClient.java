@@ -30,7 +30,7 @@ public class AIClient {
                     @Value("${lightmark.ai.model:deepseek-v4-flash}") String model) {
         this.restTemplate = restTemplateBuilder
                 .connectTimeout(Duration.ofSeconds(10))
-                .readTimeout(Duration.ofSeconds(45))
+                .readTimeout(Duration.ofSeconds(60))
                 .build();
         // Keep itinerary AI calls compatible with the customer-service client:
         // deployments may provide either a base URL (/v1) or a full endpoint.
