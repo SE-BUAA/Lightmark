@@ -1062,7 +1062,7 @@ POST `/api/chat/context/{sessionId}/reset` — 重置会话历史（已实现为
 
 **### POST `/api/upload/image` `【已实现】`**
 
-- 说明：通用图片上传接口，当前用于社区游记多图上传。后端会将图片上传到对象存储，并返回可访问 URL。
+- 说明：社区游记图片上传接口。后端将图片上传到对象存储并返回对象名称；游记的 `images` 字段只保存对象名称，展示时由前端拼接固定对象存储前缀。
 - 请求头：`Authorization: Bearer <token>`
 - Content-Type：`multipart/form-data`
 - 表单字段：
@@ -1072,6 +1072,6 @@ POST `/api/chat/context/{sessionId}/reset` — 重置会话历史（已实现为
 
 ```json
 {
-  "url": "https://objectstorage.../post-0000000000000002-20260605211300-a1b2c3d4.jpg"
+  "objectName": "post-0000000000000002-20260605211300-a1b2c3d4.jpg"
 }
 ```

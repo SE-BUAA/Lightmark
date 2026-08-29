@@ -138,6 +138,34 @@ class M6ItineraryCommunityIntegrationTests extends BaseIntegrationTest {
     }
 
     @Test
+    void communityShouldStoreOnlyImageObjectNames() throws Exception {
+        String oldUrl = "https://objectstorage.ap-tokyo-1.oraclecloud.com/p/expired/n/example/b/ortus-bucket/o/post-0000000000000002-example.jpg?token=expired";
+        String response = mockMvc.perform(post("/api/posts")
+                        .header("Authorization", userToken())
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "title": "image object name storage",
+                                  "content": "community post image storage test",
+                                  "images": "[\\"%s\\"]"
+                                }
+                                """.formatted(oldUrl)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.images").value("[\"post-0000000000000002-example.jpg\"]"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String postId = JsonPath.read(response, "$.data.id");
+        String storedImages = jdbcTemplate.queryForObject(
+                "select images from post where id = ?",
+                String.class,
+                Long.valueOf(postId)
+        );
+        org.junit.jupiter.api.Assertions.assertEquals("[\"post-0000000000000002-example.jpg\"]", storedImages);
+    }
+
+    @Test
     void communityShouldLimitDeleteToOwnerOrAdmin() throws Exception {
         String postId = createPostAndReturnId(userToken(), "权限测试游记");
 
