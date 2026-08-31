@@ -16,7 +16,11 @@ EXPORT_DIR="${EXPORT_DIR:-artifacts/db-split}"
 
 USER_TABLES=(user role user_role traveler points_log user_login_log auth_verification_code admin_log)
 PRODUCT_TABLES=(product room_type product_view_log)
-ORDER_TABLES=(orders payment_record flight_order_detail hotel_order_detail invoice_application review)
+# 注:hotel_order_detail / invoice_application 不列入拆分范围——
+# 单体 lightmark 中不存在这两张表(lightmark.sql 与运行库均无),mysqldump 显式导出会报
+# "Couldn't find table" 并使脚本中断;它们由 order-service 的 Flyway 基线
+# (V20260829__order_schema_baseline.sql)在 lightmark_order 中自动创建(空表),无需从单体迁移。
+ORDER_TABLES=(orders payment_record flight_order_detail review)
 CONTENT_TABLES=(travel_plan post post_like comment question)
 
 mkdir -p "$EXPORT_DIR"
