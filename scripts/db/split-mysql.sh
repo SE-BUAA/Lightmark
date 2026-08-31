@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# 脚本可被单独上传到服务器任意目录运行：配套文件按本脚本所在目录解析
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 MYSQL_HOST="${MYSQL_HOST:-127.0.0.1}"
 MYSQL_PORT="${MYSQL_PORT:-3306}"
 MYSQL_USER="${MYSQL_USER:-root}"
@@ -49,7 +52,7 @@ dump_tables() {
   mysql_exec "$target_schema" < "$output_file"
 }
 
-mysql_exec < "scripts/db/create-msa-schemas.sql"
+mysql_exec < "$SCRIPT_DIR/create-msa-schemas.sql"
 
 dump_tables "$USER_SCHEMA" "$EXPORT_DIR/${USER_SCHEMA}.sql" "${USER_TABLES[@]}"
 dump_tables "$PRODUCT_SCHEMA" "$EXPORT_DIR/${PRODUCT_SCHEMA}.sql" "${PRODUCT_TABLES[@]}"
