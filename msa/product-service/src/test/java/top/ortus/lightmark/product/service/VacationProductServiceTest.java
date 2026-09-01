@@ -1,0 +1,4 @@
+package top.ortus.lightmark.product.service;
+import com.fasterxml.jackson.databind.ObjectMapper; import org.junit.jupiter.api.Test; import org.springframework.jdbc.core.JdbcTemplate; import java.math.BigDecimal; import java.util.*;
+import static org.assertj.core.api.Assertions.assertThat; import static org.mockito.ArgumentMatchers.*; import static org.mockito.Mockito.*;
+class VacationProductServiceTest { @Test void filtersByDestination(){ JdbcTemplate j=mock(JdbcTemplate.class); when(j.queryForList(anyString())).thenReturn(List.of(Map.of("id",1L,"name","三亚之旅","price",new BigDecimal("1000"),"stock",2,"sold_count",0,"extra","{\"destination\":\"三亚\",\"days\":5}","category_tags","[\"海岛\"]"))); var s=new VacationProductService(j,new ObjectMapper()); assertThat(s.search(Map.of("destination","三亚"))).hasSize(1); assertThat(s.search(Map.of("destination","北京"))).isEmpty(); } }

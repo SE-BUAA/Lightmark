@@ -47,7 +47,7 @@ public class FlightSearchService {
     private static final int STATUS_PAID = 1;
     private static final int STATUS_CANCELED = 2;
     private static final int STATUS_REFUNDED = 4;
-    private static final List<String> PAYMENT_METHODS = List.of("WECHAT", "ALIPAY", "POINTS");
+    private static final List<String> PAYMENT_METHODS = List.of("WECHAT", "ALIPAY", "POINTS", "MOCK_PAY");
     private static final Map<String, String> AIRPORT_CITY_CODES = Map.ofEntries(
             Map.entry("PEK", "BJS"),
             Map.entry("PKX", "BJS"),
@@ -266,14 +266,22 @@ public class FlightSearchService {
         }
 
         String method = normalizePaymentMethod(asString(payload == null ? null : payload.get("paymentMethod")));
-        jdbcTemplate.update(
-                "update `orders` set status = ?, payment_method = ?, pay_time = ?, update_time = ? where order_no = ?",
+        int updated = jdbcTemplate.update(
+                "update `orders` set status = ?, payment_method = ?, pay_time = ?, update_time = ? where order_no = ? and status = ?",
                 STATUS_PAID,
                 method,
                 now,
                 now,
-                orderNo
+                orderNo,
+                STATUS_PENDING
         );
+        if (updated == 0) {
+            OrderDTO latest = findOrder(orderNo);
+            if (latest.getStatus() == STATUS_PAID) {
+                return paidResult(latest.getOrder_no(), latest.getPayment_method(), 0);
+            }
+            throw new ApiException(409, "order is not payable");
+        }
         jdbcTemplate.update(
                 "insert into payment_record (order_id, transaction_id, payment_method, amount, status, callback_time, create_time) values (?, ?, ?, ?, ?, ?, ?)",
                 Long.parseLong(order.getId()),
@@ -402,12 +410,23 @@ public class FlightSearchService {
         Map<String, Object> detail = flightOrderDetail(Long.parseLong(order.getId()));
         ProductDTO flight = getDetail(asString(detail.get("product_id")));
         Map<String, Object> refundInfo = buildRefundInfo(order, flight);
+        LocalDateTime now = LocalDateTime.now(clock);
+        int updated = jdbcTemplate.update(
+                "update `orders` set status = ?, update_time = ? where order_no = ? and status = ?",
+                STATUS_REFUNDED,
+                now,
+                orderNo,
+                STATUS_PAID
+        );
+        if (updated == 0) {
+            throw new ApiException(409, "order is not refundable");
+        }
         restoreStock(order);
         jdbcTemplate.update(
-                "update `orders` set status = ?, update_time = ? where order_no = ?",
-                STATUS_REFUNDED,
-                LocalDateTime.now(),
-                orderNo
+                "update payment_record set status = ?, callback_time = ? where order_id = ?",
+                2,
+                now,
+                Long.parseLong(order.getId())
         );
         pointsMembershipService.revokePoints(order.getUser_id(), order.getId(), "FLIGHT_REFUND", order.getPay_amount());
         Map<String, Object> result = new LinkedHashMap<>(refundInfo);
