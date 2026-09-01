@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1850" height="1419" viewBox="0 0 1850 1419">
+<rect width="100%" height="100%" fill="#e7e7e7"/>
+<style>text{font-family:"Microsoft YaHei","SimHei",Arial,sans-serif;}</style>
+<text x="80" y="50" font-size="30" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">系统顺序图</text>
+<text x="80" y="98" font-size="26" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">消息通知模块流程</text>
+<rect x="80.0" y="180" width="220" height="72" fill="#d5e2f3" stroke="#9a9a9a" stroke-width="2"/>
+<text x="190.0" y="201.5" font-size="22" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">业务模块</text>
+<rect x="447.5" y="180" width="220" height="72" fill="#d5e2f3" stroke="#9a9a9a" stroke-width="2"/>
+<text x="557.5" y="201.5" font-size="22" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">通知服务</text>
+<rect x="815.0" y="180" width="220" height="72" fill="#d5e2f3" stroke="#9a9a9a" stroke-width="2"/>
+<text x="925.0" y="201.5" font-size="22" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">数据库</text>
+<rect x="1182.5" y="180" width="220" height="72" fill="#d5e2f3" stroke="#9a9a9a" stroke-width="2"/>
+<text x="1292.5" y="201.5" font-size="22" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">邮件/站内信服务</text>
+<rect x="1550.0" y="180" width="220" height="72" fill="#d5e2f3" stroke="#9a9a9a" stroke-width="2"/>
+<text x="1660.0" y="201.5" font-size="22" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">用户</text>
+<line x1="190.0" y1="252" x2="190.0" y2="1344" stroke="#9a9a9a" stroke-width="1" stroke-dasharray="6 8"/>
+<rect x="182.0" y="297" width="16" height="1051" fill="#d9e5f4" stroke="#555555" stroke-width="1"/>
+<line x1="557.5" y1="252" x2="557.5" y2="1344" stroke="#9a9a9a" stroke-width="1" stroke-dasharray="6 8"/>
+<rect x="549.5" y="297" width="16" height="1051" fill="#d9e5f4" stroke="#555555" stroke-width="1"/>
+<line x1="925.0" y1="252" x2="925.0" y2="1344" stroke="#9a9a9a" stroke-width="1" stroke-dasharray="6 8"/>
+<rect x="917.0" y="297" width="16" height="1051" fill="#d9e5f4" stroke="#555555" stroke-width="1"/>
+<line x1="1292.5" y1="252" x2="1292.5" y2="1344" stroke="#9a9a9a" stroke-width="1" stroke-dasharray="6 8"/>
+<rect x="1284.5" y="297" width="16" height="1051" fill="#d9e5f4" stroke="#555555" stroke-width="1"/>
+<line x1="1660.0" y1="252" x2="1660.0" y2="1344" stroke="#9a9a9a" stroke-width="1" stroke-dasharray="6 8"/>
+<rect x="1652.0" y="297" width="16" height="1051" fill="#d9e5f4" stroke="#555555" stroke-width="1"/>
+<rect x="407.5" y="468" width="1035.0" height="379" fill="none" stroke="#f4b35f" stroke-width="2"/>
+<polygon points="407.5,468 527.5,468 497.5,514 407.5,514" fill="#e7e7e7" stroke="#f4b35f" stroke-width="2"/>
+<text x="443.5" y="482" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">alt</text>
+<line x1="407.5" y1="658" x2="1442.5" y2="658" stroke="#f4b35f" stroke-width="2" stroke-dasharray="10 8"/>
+<line x1="407.5" y1="790" x2="1442.5" y2="790" stroke="#f4b35f" stroke-width="2" stroke-dasharray="10 8"/>
+<text x="441.5" y="496" font-size="20" fill="#5a4a33" text-anchor="start" dominant-baseline="text-before-edge">[发送成功]</text>
+<text x="441.5" y="685" font-size="20" fill="#5a4a33" text-anchor="start" dominant-baseline="text-before-edge">[发送失败]</text>
+<text x="441.5" y="817" font-size="20" fill="#5a4a33" text-anchor="start" dominant-baseline="text-before-edge">[用户关闭邮件通知]</text>
+<line x1="203.0" y1="315" x2="544.5" y2="315" stroke="#222222" stroke-width="2"/>
+<polygon points="544.5,315 531.8864358493661,321.0743723476458 531.8864358493661,308.9256276523542" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="373.75" y="261" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">触发通知事件</text>
+<rect x="312.75" y="257" width="122" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="373.75" y="261" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">触发通知事件</text>
+<line x1="567.5" y1="381" x2="682.5" y2="381" stroke="#222222" stroke-width="2"/>
+<line x1="682.5" y1="381" x2="682.5" y2="415" stroke="#222222" stroke-width="2"/>
+<line x1="682.5" y1="415" x2="569.5" y2="415" stroke="#222222" stroke-width="2"/>
+<polygon points="569.5,415 582.1135641506339,408.9256276523542 582.1135641506339,421.0743723476458" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="628.0" y="330" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">选择通知模板</text>
+<line x1="570.5" y1="447" x2="912.0" y2="447" stroke="#222222" stroke-width="2"/>
+<polygon points="912.0,447 899.3864358493661,453.0743723476458 899.3864358493661,440.9256276523542" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="741.25" y="393" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">保存通知记录</text>
+<rect x="680.25" y="389" width="122" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="741.25" y="393" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">保存通知记录</text>
+<line x1="570.5" y1="513" x2="1279.5" y2="513" stroke="#222222" stroke-width="2"/>
+<polygon points="1279.5,513 1266.886435849366,519.0743723476459 1266.886435849366,506.9256276523542" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="925.0" y="459" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">发送通知</text>
+<rect x="883.0" y="455" width="84" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="925.0" y="459" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">发送通知</text>
+<line x1="1305.5" y1="579" x2="1647.0" y2="579" stroke="#222222" stroke-width="2" stroke-dasharray="9 7"/>
+<polygon points="1647.0,579 1634.386435849366,585.0743723476459 1634.386435849366,572.9256276523541" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="1476.25" y="525" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">送达通知</text>
+<rect x="1434.25" y="521" width="84" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="1476.25" y="525" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">送达通知</text>
+<line x1="570.5" y1="645" x2="912.0" y2="645" stroke="#222222" stroke-width="2"/>
+<polygon points="912.0,645 899.3864358493661,651.0743723476459 899.3864358493661,638.9256276523541" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="741.25" y="591" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">状态改为已发送</text>
+<rect x="670.75" y="587" width="141" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="741.25" y="591" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">状态改为已发送</text>
+<line x1="570.5" y1="711" x2="912.0" y2="711" stroke="#222222" stroke-width="2"/>
+<polygon points="912.0,711 899.3864358493661,717.0743723476459 899.3864358493661,704.9256276523541" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="741.25" y="627" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">记录失败原因，进入重试或待处理状</text>
+<text x="741.25" y="657" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">态</text>
+<rect x="585.25" y="623" width="312" height="64" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="741.25" y="627" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">记录失败原因，进入重试或待处理状</text>
+<text x="741.25" y="657" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">态</text>
+<line x1="570.5" y1="777" x2="1279.5" y2="777" stroke="#222222" stroke-width="2"/>
+<polygon points="1279.5,777 1266.886435849366,783.0743723476459 1266.886435849366,770.9256276523541" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="925.0" y="723" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">仅发送站内信</text>
+<rect x="864.0" y="719" width="122" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="925.0" y="723" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">仅发送站内信</text>
+<line x1="1647.0" y1="909" x2="570.5" y2="909" stroke="#222222" stroke-width="2"/>
+<polygon points="570.5,909 583.1135641506339,902.9256276523541 583.1135641506339,915.0743723476459" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="1108.75" y="855" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">查看通知列表</text>
+<rect x="1047.75" y="851" width="122" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="1108.75" y="855" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">查看通知列表</text>
+<line x1="570.5" y1="975" x2="912.0" y2="975" stroke="#222222" stroke-width="2"/>
+<polygon points="912.0,975 899.3864358493661,981.0743723476459 899.3864358493661,968.9256276523541" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="741.25" y="921" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">查询用户通知</text>
+<rect x="680.25" y="917" width="122" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="741.25" y="921" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">查询用户通知</text>
+<line x1="912.0" y1="1041" x2="570.5" y2="1041" stroke="#222222" stroke-width="2" stroke-dasharray="9 7"/>
+<polygon points="570.5,1041 583.1135641506339,1034.9256276523543 583.1135641506339,1047.0743723476457" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="741.25" y="987" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">返回通知列表</text>
+<rect x="680.25" y="983" width="122" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="741.25" y="987" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">返回通知列表</text>
+<line x1="570.5" y1="1107" x2="1647.0" y2="1107" stroke="#222222" stroke-width="2" stroke-dasharray="9 7"/>
+<polygon points="1647.0,1107 1634.386435849366,1113.0743723476457 1634.386435849366,1100.9256276523543" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="1108.75" y="1053" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">展示通知</text>
+<rect x="1066.75" y="1049" width="84" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="1108.75" y="1053" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">展示通知</text>
+<line x1="1647.0" y1="1173" x2="570.5" y2="1173" stroke="#222222" stroke-width="2"/>
+<polygon points="570.5,1173 583.1135641506339,1166.9256276523543 583.1135641506339,1179.0743723476457" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="1108.75" y="1119" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">标记已读</text>
+<rect x="1066.75" y="1115" width="84" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="1108.75" y="1119" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">标记已读</text>
+<line x1="570.5" y1="1239" x2="912.0" y2="1239" stroke="#222222" stroke-width="2"/>
+<polygon points="912.0,1239 899.3864358493661,1245.0743723476457 899.3864358493661,1232.9256276523543" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="741.25" y="1185" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">更新 read_status</text>
+<rect x="662.75" y="1181" width="157" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="741.25" y="1185" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">更新 read_status</text>
+</svg>
