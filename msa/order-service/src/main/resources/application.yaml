@@ -2,7 +2,7 @@ spring:
   application:
     name: order-service
   datasource:
-    url: jdbc:mysql://${ORDER_DB_HOST:${DB_HOST:127.0.0.1}}:${ORDER_DB_PORT:${DB_PORT:3306}}/${ORDER_DB_NAME:lightmark_order}?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8
+    url: ${ORDER_DB_URL:jdbc:mysql://${ORDER_DB_HOST:${DB_HOST:127.0.0.1}}:${ORDER_DB_PORT:${DB_PORT:3306}}/${ORDER_DB_NAME:lightmark_order}?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8}
     username: ${ORDER_DB_USER:${DB_USER:lightmark}}
     password: ${ORDER_DB_PASSWORD:${DB_PASSWORD:change-me}}
   flyway:

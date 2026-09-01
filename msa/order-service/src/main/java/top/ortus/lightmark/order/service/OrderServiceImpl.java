@@ -939,7 +939,8 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private Map<String, Object> requireHotelOrder(Long userId, Long orderId) {
-        Map<String, Object> row = orderRepository.findById(orderId) == null ? null : toOrderMap(orderRepository.findById(orderId));
+        OrderRepository.OrderRow order = orderRepository.findById(orderId);
+        Map<String, Object> row = order == null ? null : toOrderMap(order);
         if (row == null) {
             throw new ApiException(404, "order not found");
         }
