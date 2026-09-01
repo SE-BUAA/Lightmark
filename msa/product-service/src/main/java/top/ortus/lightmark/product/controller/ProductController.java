@@ -12,6 +12,7 @@ import top.ortus.lightmark.product.dto.VacationDTO;
 import top.ortus.lightmark.product.service.VacationProductService;
 import top.ortus.lightmark.product.service.TrainProductService;
 import top.ortus.lightmark.product.dto.TrainTicketDTO;
+import top.ortus.lightmark.common.exception.ApiException;
 import java.util.List;
 import java.util.Map;
 
@@ -28,10 +29,24 @@ public class ProductController {
     @GetMapping("/flights/price-calendar") public ApiResponse<Map<String,Object>> calendar(@RequestParam Map<String,String> params) { return ApiResponse.ok(service.priceCalendar(params)); }
     @GetMapping("/products") public ApiResponse<PageResponse<ProductDTO>> products(@RequestParam Map<String,String> params) { return ApiResponse.ok(service.products(params)); }
     @GetMapping("/products/{id}") public ApiResponse<ProductDTO> product(@PathVariable String id) { return ApiResponse.ok(service.product(id)); }
-    @PostMapping("/internal/product/{id}/stock") public ApiResponse<Boolean> stock(@PathVariable long id, @RequestBody Map<String,Object> body) {
-        int quantity = Integer.parseInt(String.valueOf(body.getOrDefault("quantity", 0)));
+    @PostMapping("/internal/product/{id}/stock") public ApiResponse<Boolean> stock(@PathVariable String id, @RequestBody Map<String,Object> body) {
+        long productId;
+        try { productId = Long.parseLong(id); }
+        catch (NumberFormatException ex) { throw new ApiException(400, "productId is invalid"); }
+        if (body == null) throw new ApiException(400, "stock adjustment is required");
+        Object deltaValue = body.get("delta");
+        if (deltaValue != null) {
+            int delta;
+            try { delta = Integer.parseInt(String.valueOf(deltaValue)); }
+            catch (NumberFormatException ex) { throw new ApiException(400, "delta is invalid"); }
+            if (delta == 0) throw new ApiException(400, "delta must not be zero");
+            return ApiResponse.ok(service.adjustInventory(productId, Math.abs(delta), delta < 0));
+        }
+        int quantity;
+        try { quantity = Integer.parseInt(String.valueOf(body.getOrDefault("quantity", 0))); }
+        catch (NumberFormatException ex) { throw new ApiException(400, "quantity is invalid"); }
         boolean deduct = !"RELEASE".equalsIgnoreCase(String.valueOf(body.getOrDefault("operation", "DEDUCT")));
-        return ApiResponse.ok(service.adjustInventory(id, quantity, deduct));
+        return ApiResponse.ok(service.adjustInventory(productId, quantity, deduct));
     }
     @GetMapping("/internal/product/{id}") public ApiResponse<ProductDTO> internalProduct(@PathVariable String id) { return ApiResponse.ok(service.product(id)); }
     @GetMapping("/hotel/list") public ApiResponse<PageResponse<HotelDTO>> hotels(@RequestParam Map<String,String> params) { return ApiResponse.ok(hotelService.search(params)); }
