@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# 脚本可被单独上传到服务器任意目录运行：配套文件按本脚本所在目录解析
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 MYSQL_HOST="${MYSQL_HOST:-127.0.0.1}"
 MYSQL_PORT="${MYSQL_PORT:-3306}"
 MYSQL_USER="${MYSQL_USER:-root}"
@@ -16,9 +19,12 @@ EXPORT_DIR="${EXPORT_DIR:-artifacts/db-split}"
 
 USER_TABLES=(user role user_role traveler points_log user_login_log auth_verification_code admin_log)
 PRODUCT_TABLES=(product room_type product_view_log)
-# Only tables that exist in the monolith are dumped. The MSA-only
-# hotel_order_detail and invoice_application tables are created by order-service
-# Flyway and must not be passed to mysqldump.
+
+# 注:hotel_order_detail / invoice_application 不列入拆分范围——
+# 单体 lightmark 中不存在这两张表(lightmark.sql 与运行库均无),mysqldump 显式导出会报
+# "Couldn't find table" 并使脚本中断;它们由 order-service 的 Flyway 基线
+# (V20260829__order_schema_baseline.sql)在 lightmark_order 中自动创建(空表),无需从单体迁移。
+
 ORDER_TABLES=(orders payment_record flight_order_detail review)
 CONTENT_TABLES=(travel_plan post post_like comment question)
 
@@ -71,8 +77,10 @@ dump_tables() {
   mysql_exec "$target_schema" < "$output_file"
 }
 
+
 require_source_tables
 mysql_exec < "scripts/db/create-msa-schemas.sql"
+
 
 dump_tables "$USER_SCHEMA" "$EXPORT_DIR/${USER_SCHEMA}.sql" "${USER_TABLES[@]}"
 dump_tables "$PRODUCT_SCHEMA" "$EXPORT_DIR/${PRODUCT_SCHEMA}.sql" "${PRODUCT_TABLES[@]}"
