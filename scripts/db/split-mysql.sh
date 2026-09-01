@@ -4,7 +4,7 @@ set -euo pipefail
 MYSQL_HOST="${MYSQL_HOST:-127.0.0.1}"
 MYSQL_PORT="${MYSQL_PORT:-3306}"
 MYSQL_USER="${MYSQL_USER:-root}"
-MYSQL_PASSWORD="${MYSQL_PASSWORD:-change-me}"
+MYSQL_PASSWORD="${MYSQL_PASSWORD:-}"
 MONOLITH_DB="${MONOLITH_DB:-lightmark}"
 
 USER_SCHEMA="${USER_SCHEMA:-lightmark_user}"
@@ -16,13 +16,39 @@ EXPORT_DIR="${EXPORT_DIR:-artifacts/db-split}"
 
 USER_TABLES=(user role user_role traveler points_log user_login_log auth_verification_code admin_log)
 PRODUCT_TABLES=(product room_type product_view_log)
-ORDER_TABLES=(orders payment_record flight_order_detail hotel_order_detail invoice_application review)
+# Only tables that exist in the monolith are dumped. The MSA-only
+# hotel_order_detail and invoice_application tables are created by order-service
+# Flyway and must not be passed to mysqldump.
+ORDER_TABLES=(orders payment_record flight_order_detail review)
 CONTENT_TABLES=(travel_plan post post_like comment question)
+
+if [[ -z "$MYSQL_PASSWORD" ]]; then
+  echo "[FATAL] MYSQL_PASSWORD must be provided through the environment" >&2
+  exit 1
+fi
 
 mkdir -p "$EXPORT_DIR"
 
 mysql_exec() {
   MYSQL_PWD="$MYSQL_PASSWORD" mysql --host="$MYSQL_HOST" --port="$MYSQL_PORT" --user="$MYSQL_USER" "$@"
+}
+
+require_source_tables() {
+  local missing=()
+  local table
+  local count
+  for table in "${USER_TABLES[@]}" "${PRODUCT_TABLES[@]}" "${ORDER_TABLES[@]}" "${CONTENT_TABLES[@]}"; do
+    count="$(mysql_exec --batch --skip-column-names -e \
+      "select count(*) from information_schema.tables where table_schema = '${MONOLITH_DB}' and table_name = '${table}'")"
+    if [[ "$count" != "1" ]]; then
+      missing+=("$table")
+    fi
+  done
+  if (( ${#missing[@]} > 0 )); then
+    echo "[FATAL] monolith database '${MONOLITH_DB}' is missing required tables: ${missing[*]}" >&2
+    echo "       Check MYSQL_HOST/MYSQL_PORT/MYSQL_USER/MONOLITH_DB before retrying." >&2
+    exit 1
+  fi
 }
 
 dump_tables() {
@@ -45,6 +71,7 @@ dump_tables() {
   mysql_exec "$target_schema" < "$output_file"
 }
 
+require_source_tables
 mysql_exec < "scripts/db/create-msa-schemas.sql"
 
 dump_tables "$USER_SCHEMA" "$EXPORT_DIR/${USER_SCHEMA}.sql" "${USER_TABLES[@]}"

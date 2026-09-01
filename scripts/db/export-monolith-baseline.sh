@@ -4,9 +4,14 @@ set -euo pipefail
 MYSQL_HOST="${MYSQL_HOST:-127.0.0.1}"
 MYSQL_PORT="${MYSQL_PORT:-3306}"
 MYSQL_USER="${MYSQL_USER:-root}"
-MYSQL_PASSWORD="${MYSQL_PASSWORD:-change-me}"
+MYSQL_PASSWORD="${MYSQL_PASSWORD:-}"
 MONOLITH_DB="${MONOLITH_DB:-lightmark}"
 OUT_DIR="${OUT_DIR:-artifacts/perf-baseline/monolith}"
+
+if [[ -z "$MYSQL_PASSWORD" ]]; then
+  echo "[FATAL] MYSQL_PASSWORD must be provided through the environment" >&2
+  exit 1
+fi
 
 mkdir -p "$OUT_DIR"
 

@@ -18,6 +18,9 @@ public class JwtTokenService {
     private final long expireMinutes;
 
     public JwtTokenService(String secret, String issuer, long expireMinutes) {
+        if (secret == null || secret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalArgumentException("JWT_SECRET must be at least 32 UTF-8 bytes");
+        }
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.issuer = issuer;
         this.expireMinutes = expireMinutes;
@@ -45,9 +48,20 @@ public class JwtTokenService {
     public Claims parseToken(String token) {
         return Jwts.parser()
                 .verifyWith(secretKey)
+                .requireIssuer(issuer)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
+    }
+
+    /** Returns true only when signature, issuer and time claims are valid. */
+    public boolean isValid(String token) {
+        try {
+            Claims claims = parseToken(token);
+            return issuer.equals(claims.getIssuer());
+        } catch (Exception ex) {
+            return false;
+        }
     }
 
     public Long resolveUserId(String token) {

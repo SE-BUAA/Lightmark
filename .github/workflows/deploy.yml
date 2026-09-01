@@ -299,3 +299,125 @@ jobs:
           grep -q 'id="app"' /tmp/lm-index.html
           rm -f /tmp/lm-index.html
           echo "浏览器入口 https://$HOST 可访问（后端 UP + 首页含 Vue 挂载点）✓"
+
+  # ---------------------------------------------------------------
+  # A 部分：user-service 独立构建、镜像和 Kubernetes 部署
+  # 仅在 user-service 的编译门禁通过后执行；数据库不在此 job 中初始化。
+  # ---------------------------------------------------------------
+  test-msa-user-service:
+    name: A user-service 编译门禁
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: 取代码
+        uses: actions/checkout@v5
+      - name: 安装 JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: 构建并运行 user-service 测试
+        run: mvn -B -ntp -f msa/pom.xml -pl user-service -am test
+      - name: 上传 user-service 测试报告
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: msa-user-service-test-reports-${{ github.sha }}
+          path: msa/user-service/target/surefire-reports
+          if-no-files-found: ignore
+
+  build-push-msa-user-service:
+    name: A 构建并推送 user-service 镜像
+    needs: test-msa-user-service
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      image_repo: ${{ steps.lowerrepo.outputs.repo }}
+    steps:
+      - name: 取代码
+        uses: actions/checkout@v5
+      - name: 计算镜像仓库名
+        id: lowerrepo
+        run: echo "repo=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+      - name: 安装 JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: 打包 user-service
+        run: mvn -B -ntp -f msa/pom.xml -pl user-service -am package -DskipTests
+      - name: 准备 Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: 登录 GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: 构建并推送版本化镜像
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: msa/user-service/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            APP_VERSION=user-service-${{ env.IMAGE_VERSION }}
+          tags: |
+            ghcr.io/${{ steps.lowerrepo.outputs.repo }}/user-service:user-service-${{ env.IMAGE_VERSION }}
+            ghcr.io/${{ steps.lowerrepo.outputs.repo }}/user-service:user-service-sha-${{ github.sha }}
+          cache-from: type=gha,scope=msa-user-service
+          cache-to: type=gha,mode=max,scope=msa-user-service
+
+  deploy-msa-user-service:
+    name: A 部署 user-service 到 Kubernetes
+    needs: build-push-msa-user-service
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: 取代码
+        uses: actions/checkout@v5
+      - name: 校验服务器 Secrets
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_ENV_BASE64: ${{ secrets.SERVER_ENV_BASE64 }}
+        run: |
+          test -n "$SERVER_HOST" || { echo "::error::未配置 SERVER_HOST"; exit 1; }
+          test -n "$SERVER_ENV_BASE64" || { echo "::error::未配置 SERVER_ENV_BASE64（应包含 USER_DB_* 和 JWT_SECRET）"; exit 1; }
+      - name: 打包 user-service 部署文件
+        run: tar czf msa-user-service-deploy.tar.gz deploy/k8s/namespace.yaml deploy/k8s/ingress.yaml deploy/k8s/msa/user-service.yaml scripts/deploy-user-service-k8s.sh
+      - name: 上传部署文件
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          port: ${{ secrets.SERVER_PORT || '22' }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: msa-user-service-deploy.tar.gz
+          target: /tmp
+      - name: SSH 部署并检查 user-service
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          port: ${{ secrets.SERVER_PORT || '22' }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            set -e
+            DEPLOY_DIR="${DEPLOY_DIR:-$HOME/lightmark}"
+            mkdir -p "$DEPLOY_DIR"
+            tar xzf /tmp/msa-user-service-deploy.tar.gz -C "$DEPLOY_DIR"
+            cd "$DEPLOY_DIR"
+            bash scripts/deploy-user-service-k8s.sh
+          envs: TAG,REGISTRY,REPO,SERVER_ENV_BASE64,GHCR_USERNAME,GHCR_PAT,DEPLOY_DIR,NAMESPACE
+        env:
+          TAG: ${{ env.IMAGE_VERSION }}
+          REGISTRY: ${{ env.IMAGE_REGISTRY }}
+          REPO: ${{ needs.build-push-msa-user-service.outputs.image_repo }}
+          SERVER_ENV_BASE64: ${{ secrets.SERVER_ENV_BASE64 }}
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          GHCR_PAT: ${{ secrets.GHCR_PAT }}
+          DEPLOY_DIR: ${{ vars.DEPLOY_DIR }}
+          NAMESPACE: lightmark

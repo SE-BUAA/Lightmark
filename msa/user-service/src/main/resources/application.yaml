@@ -2,12 +2,91 @@ spring:
   application:
     name: user-service
   datasource:
-    url: jdbc:mysql://${USER_DB_HOST:${DB_HOST:127.0.0.1}}:${USER_DB_PORT:${DB_PORT:3306}}/${USER_DB_NAME:lightmark_user}?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8
-    username: ${USER_DB_USER:${DB_USER:lightmark}}
-    password: ${USER_DB_PASSWORD:${DB_PASSWORD:change-me}}
+    # 本分支只读取服务器已有数据库，不执行建库或表结构修改。
+    # 若 CI/CD 注入了独立 user schema，只需覆盖 USER_DB_NAME。
+    url: jdbc:mysql://${USER_DB_HOST:${DB_HOST:150.230.223.11}}:${USER_DB_PORT:${DB_PORT:3306}}/${USER_DB_NAME:${DB_NAME:lightmark}}?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8
+    username: ${USER_DB_USER:${DB_USER:se}}
+    password: ${USER_DB_PASSWORD:${DB_PASSWORD:}}
+    hikari:
+      connection-timeout: 10000
+      validation-timeout: 3000
   flyway:
-    enabled: true
+    # 当前迭代不改远程数据库，固定关闭自动迁移。
+    # 需要在已经准备好独立 user schema 后显式设置 USER_FLYWAY_ENABLED=true。
+    enabled: ${USER_FLYWAY_ENABLED:false}
     locations: classpath:db/migration/user
     baseline-on-migrate: true
+  sql:
+    init:
+      mode: never
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+  mail:
+    host: ${AUTH_MAIL_HOST:smtp.qq.com}
+    port: ${AUTH_MAIL_PORT:465}
+    username: ${AUTH_MAIL_USERNAME:}
+    password: ${AUTH_MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.ssl.enable: ${AUTH_MAIL_SSL_ENABLED:true}
+lightmark:
+  auth:
+    captcha:
+      session-key: ${AUTH_CAPTCHA_SESSION_KEY:auth:captcha}
+      length: ${AUTH_CAPTCHA_LENGTH:4}
+      case-sensitive: ${AUTH_CAPTCHA_CASE_SENSITIVE:false}
+    verification:
+      code-length: ${AUTH_VERIFICATION_CODE_LENGTH:6}
+      expire-minutes: ${AUTH_VERIFICATION_EXPIRE_MINUTES:10}
+      resend-seconds: ${AUTH_VERIFICATION_RESEND_SECONDS:60}
+      max-send-per-hour: ${AUTH_VERIFICATION_MAX_SEND_PER_HOUR:5}
+      allow-edu-cn: true
+    jwt:
+      # 必须由环境变量注入；禁止使用默认密钥启动。
+      secret: ${JWT_SECRET:}
+      issuer: ${JWT_ISSUER:lightmark}
+      expire-minutes: ${JWT_EXPIRE_MINUTES:120}
+    mail:
+      host: ${AUTH_MAIL_HOST:smtp.qq.com}
+      port: ${AUTH_MAIL_PORT:465}
+      username: ${AUTH_MAIL_USERNAME:}
+      password: ${AUTH_MAIL_PASSWORD:}
+      from-email: ${AUTH_MAIL_FROM_EMAIL:}
+      from-name: ${AUTH_MAIL_FROM_NAME:lightmark}
+      ssl-enabled: ${AUTH_MAIL_SSL_ENABLED:true}
+  object-storage:
+    base-url: ${OBJECT_STORAGE_BASE_URL:}
+  membership:
+    levels:
+      - level: 0
+        points-threshold: 0
+        benefits: []
+      - level: 1
+        points-threshold: 100
+        benefits: [VIP 折扣, 积分加成]
+      - level: 2
+        points-threshold: 500
+        benefits: [更高折扣, 专属客服]
+      - level: 3
+        points-threshold: 1000
+        benefits: [最高折扣, 专属客服, 生日礼包]
+
+jwt:
+  # Kept as a compatibility alias for local scripts.
+  secret: ${JWT_SECRET:}
+app:
+  name: user-service
+  version: ${APP_VERSION:0.0.1-SNAPSHOT}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
 server:
   port: ${USER_SERVICE_PORT:8081}

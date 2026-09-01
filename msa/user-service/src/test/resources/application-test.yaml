@@ -1,0 +1,24 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:user_service_test;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password:
+  flyway:
+    enabled: false
+  sql:
+    init:
+      mode: never
+lightmark:
+  auth:
+    jwt:
+      secret: test-jwt-secret-for-user-service-0123456789
+      issuer: lightmark-test
+      expire-minutes: 30
+    verification:
+      resend-seconds: 0
+    mail:
+      username: test@example.com
+      password: test-password
+      from-email: test@example.com
+app:
+  version: test
