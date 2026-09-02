@@ -16,7 +16,12 @@
 
 **要求**：Docker（+ Docker Compose）、仓库根目录 `.env`（含 DB/JWT 配置，可缺省部分值）。
 
-**数据库**：默认使用服务器 MySQL `150.230.223.11:3306`（可用 `DB_HOST`/`DB_USER`/`DB_PASSWORD` 等环境变量覆盖）。首次运行脚本会自动尝试创建 4 个 schema 并授权；无建库权限时脚本会打印一段管理员 SQL，手动执行一次即可。
+**后端数据库**：默认使用服务器 MySQL `150.230.223.11:3306`（可用 `DB_HOST`/`DB_USER`/`DB_PASSWORD` 等环境变量覆盖）。首次运行脚本会自动尝试创建 4 个 schema 并授权；无建库权限时脚本会打印一段管理员 SQL，手动执行一次即可。
+
+**前端**：本地 Nginx 托管 SPA（默认 `http://127.0.0.1:8080`）。`/api/*` 默认**路由到本地 4 个微服务**
+（`FRONTEND_API_MODE=local`，nginx 按前缀转发到 8081-8084 容器），本地即可完整联调；
+如需让前端只连远端已部署的 MSA，设 `FRONTEND_API_MODE=remote`（此时 `/api` 反代到
+`MSA_API_HOST`，默认 `https://msa.lightmark.ortus.top`）。
 
 ```bash
 # Ubuntu / macOS
@@ -26,7 +31,7 @@ bash msa/run-local.sh
 powershell -ExecutionPolicy Bypass -File msa/run-local.ps1
 ```
 
-脚本做的事情：读取 `.env` → 建库引导（可选）→ `docker compose` 构建并启动 4 个容器 → 轮询 4 个 `/api/health` 直到全部 UP。
+脚本做的事情：读取 `.env` → 建库引导（可选）→ `docker compose` 构建并启动 4 个服务 + 前端共 5 个容器 → 轮询 4 个 `/api/health` 与前端首页（Vue 挂载点）直到全部就绪。
 
 常用命令：
 
@@ -46,6 +51,10 @@ docker compose -f docker-compose.local.yml down                   # 停止
 | `USER_DB_NAME` 等 | `lightmark_user` 等 | 各服务 schema 名 |
 | `DB_ADMIN_USER` / `DB_ADMIN_PASSWORD` | `root` / 空 | 建库引导用的管理员账号 |
 | `SKIP_DB_BOOTSTRAP=1` | - | 跳过建库引导 |
+| `FRONTEND_PORT` | `8080` | 本地前端端口 |
+| `FRONTEND_API_MODE` | `local` | `local`=路由到本地服务；`remote`=反代到远端 MSA 入口 |
+| `MSA_API_HOST` | `msa.lightmark.ortus.top` | remote 模式下 `/api` 反代的目标（已部署的 MSA 入口） |
+| `MSA_API_HOST_IP` | `150.230.223.11` | remote 模式下目标入口的服务器 IP（容器内 extra_hosts 固定解析） |
 
 ## 二、CI/CD（GitHub Actions）
 
@@ -63,10 +72,16 @@ TAG=1.0.5 REPO=se-buaa/lightmark bash scripts/deploy-msa-k8s.sh
 
 部署脚本完成：命名空间/拉取凭据/TLS → 确保 k8s 内 MySQL → 数据库拆分
 （`scripts/db/split-mysql.sh`，单体 `lightmark` 20 张表 → 4 个 schema，幂等）→
-4 个服务 Secret → 渲染应用 4 个 Deployment/Service/HPA + MSA Ingress
+4 个服务 Secret → 渲染应用 4 个 Deployment/Service/HPA + 前端 `msa-frontend` + MSA Ingress
 （默认域名 `msa.lightmark.ortus.top`，`MSA_INGRESS_HOST` 可覆盖）→ 滚动更新 → 健康检查。
 
-镜像命名：`ghcr.io/<repo>/<svc>-service:<svc>-service-<TAG>`（如 `user-service-1.0.5`）。
+**访问前端页面**：部署成功后浏览器打开 `https://<MSA_INGRESS_HOST>`（默认
+`https://msa.lightmark.ortus.top`）。前端是静态 SPA（Nginx 托管），`/api/*` 由 Ingress
+按前缀路由到 4 个微服务。需要先把该域名解析到服务器 IP（DNS 或本地 hosts 文件），
+TLS 证书若未覆盖该域名会提示不安全（部署脚本可用 `CERT_DIR` 下的证书，否则自签名）。
+
+镜像命名：`ghcr.io/<repo>/<svc>-service:<svc>-service-<TAG>`（如 `user-service-1.0.5`）、
+`ghcr.io/<repo>/frontend:frontend-<TAG>`。
 
 ## 四、说明
 

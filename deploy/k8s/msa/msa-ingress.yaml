@@ -5,6 +5,7 @@
 #   （默认 msa.lightmark.ortus.top，与单体入口 lightmark.ortus.top 互不冲突）
 # - Traefik 按最长路径前缀匹配，因此 /api/flights/order、/api/hotel/order 等
 #   会优先命中 order-service，而 /api/flights、/api/hotel 等落到 product-service
+# - / 兜底路由到 msa-frontend（Nginx 静态 SPA），/api/* 永不落到前端
 # - TLS 证书 Secret lightmark-tls 由部署脚本保证存在（服务器证书或自签名）
 # - 已知路由边界：/api/hotel/{hotelId}/reviews（订单评价）前缀为 /api/hotel，
 #   会命中 product-service；如需精确路由可改用 Traefik IngressRoute + PathRegexp
@@ -213,3 +214,11 @@ spec:
                 name: content-service
                 port:
                   number: 8084
+          # ---- 前端 SPA（兜底路由；/api/* 已在上面按最长前缀优先命中各服务） ----
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: msa-frontend
+                port:
+                  number: 80

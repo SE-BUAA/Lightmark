@@ -1,0 +1,47 @@
+# =====================================================================
+# MSA 本地前端 Nginx 配置模板（nginx 官方镜像 envsubst 注入 ${MSA_API_HOST}）
+#
+# - 托管 Vue SPA 静态资源（history 路由回退 index.html）
+# - /api/* 反向代理到已部署的 MSA 入口（默认 https://msa.lightmark.ortus.top），
+#   由远端 k8s Ingress 按前缀路由到 4 个微服务
+# - proxy_ssl_verify off：远端为自签名或 Cloudflare origin 证书时不校验；
+#   Host 头固定为 MSA_API_HOST，保证 Traefik 按域名路由命中
+# - 只替换模板中出现的 ${MSA_API_HOST}，$uri/$host 等 nginx 变量不受影响
+# =====================================================================
+server {
+    listen 80;
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    client_max_body_size 20m;
+
+    # SPA history 路由回退：不存在的路径一律交给 index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # 静态资源：命中即返回，未命中 404
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|webp|woff2?|ttf|eot|map)$ {
+        try_files $uri =404;
+        expires 7d;
+        access_log off;
+    }
+
+    # /api 反代到已部署的 MSA 入口
+    location /api/ {
+        proxy_pass https://${MSA_API_HOST};
+        proxy_ssl_verify off;
+        proxy_ssl_server_name on;
+        proxy_set_header Host ${MSA_API_HOST};
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_http_version 1.1;
+        proxy_connect_timeout 10s;
+        proxy_send_timeout 300s;   # AI 对话/流式接口可能较慢
+        proxy_read_timeout 300s;
+    }
+}

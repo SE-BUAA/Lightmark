@@ -1,7 +1,8 @@
 ﻿# =====================================================================
 # Lightmark MSA 本地一键运行（Windows PowerShell）
 #
-# 不需要 Kubernetes：构建并启动 4 个微服务 Docker 容器（8081-8084），
+# 不需要 Kubernetes：构建并启动 4 个微服务 Docker 容器（8081-8084）
+# 和前端 SPA 容器（默认 8080，/api 反代到已部署的 MSA 入口），
 # 数据库使用服务器现有 MySQL（默认 150.230.223.11:3306，可覆盖）。
 #
 # 用法：
@@ -44,9 +45,14 @@ $dbHost      = Resolve-Var "DB_HOST" "150.230.223.11"
 $dbPort      = Resolve-Var "DB_PORT" "3306"
 $dbUser      = Resolve-Var "DB_USER" "se"
 $dbPassword  = Resolve-Var "DB_PASSWORD" ""
-Resolve-Var "JWT_SECRET" "local-msa-dev-secret" | Out-Null
+Resolve-Var "JWT_SECRET" "local-msa-dev-secret-0123456789abcdef" | Out-Null
 Resolve-Var "JWT_ISSUER" "lightmark" | Out-Null
 Resolve-Var "JWT_EXPIRE_MINUTES" "120" | Out-Null
+# 前端：local 模式（默认）路由到本地 4 个服务；remote 模式反代到已部署的 MSA 入口
+Resolve-Var "FRONTEND_API_MODE" "local" | Out-Null
+Resolve-Var "MSA_API_HOST" "msa.lightmark.ortus.top" | Out-Null
+Resolve-Var "MSA_API_HOST_IP" "150.230.223.11" | Out-Null
+Resolve-Var "FRONTEND_PORT" "8080" | Out-Null
 
 $schemaMap = @{
     "USER"    = "lightmark_user"
@@ -135,14 +141,36 @@ foreach ($entry in @(@("user-service", 8081), @("product-service", 8082), @("ord
     }
 }
 
+# 前端 SPA（检查 Vue 挂载点）
+$frontendPort = [Environment]::GetEnvironmentVariable("FRONTEND_PORT")
+$msaApiHost   = [Environment]::GetEnvironmentVariable("MSA_API_HOST")
+$frontendUp = $false
+for ($i = 0; $i -lt 40; $i++) {
+    try {
+        $resp = Invoke-WebRequest -UseBasicParsing -TimeoutSec 3 "http://127.0.0.1:${frontendPort}/"
+        if ($resp.Content -match 'id="app"') { $frontendUp = $true; break }
+    }
+    catch { }
+    Start-Sleep -Seconds 5
+}
+if ($frontendUp) {
+    Write-Host "[OK] frontend  http://127.0.0.1:${frontendPort}/ -> SPA 已就绪（/api 反代到 $msaApiHost）"
+}
+else {
+    Write-Host "[FAIL] frontend  http://127.0.0.1:${frontendPort}/ 未就绪"
+    Write-Host "       查看日志：docker compose -f docker-compose.local.yml logs frontend"
+    $allUp = $false
+}
+
 if ($allUp) {
     Write-Host ""
     Write-Host "=========================================================="
-    Write-Host " 4 个微服务全部就绪"
+    Write-Host " 本地 MSA 全部就绪"
     Write-Host "   user-service     http://127.0.0.1:8081/api/health"
     Write-Host "   product-service  http://127.0.0.1:8082/api/health"
     Write-Host "   order-service    http://127.0.0.1:8083/api/health"
     Write-Host "   content-service  http://127.0.0.1:8084/api/health"
+    Write-Host "   frontend         http://127.0.0.1:${frontendPort}/  （/api 反代到 $msaApiHost）"
     Write-Host ""
     Write-Host " 停止：docker compose -f docker-compose.local.yml down"
     Write-Host " 日志：docker compose -f docker-compose.local.yml logs -f <service>"

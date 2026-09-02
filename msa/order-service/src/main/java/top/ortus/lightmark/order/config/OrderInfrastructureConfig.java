@@ -21,8 +21,8 @@ public class OrderInfrastructureConfig {
 
     @Bean
     JwtTokenService orderJwtTokenService(@Value("${lightmark.jwt.secret}") String secret,
-                                    @Value("${lightmark.jwt.issuer}") String issuer,
-                                    @Value("${lightmark.jwt.expire-minutes}") long expireMinutes) {
+                                         @Value("${lightmark.jwt.issuer}") String issuer,
+                                         @Value("${lightmark.jwt.expire-minutes}") long expireMinutes) {
         return new JwtTokenService(secret, issuer, expireMinutes);
     }
 }

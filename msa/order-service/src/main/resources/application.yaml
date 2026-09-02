@@ -17,16 +17,15 @@ lightmark:
       secret: ${JWT_SECRET:}
       issuer: ${JWT_ISSUER:lightmark}
       expire-minutes: ${JWT_EXPIRE_MINUTES:120}
+  # 兼容路径：OrderInfrastructureConfig 的本地 JwtTokenService Bean 读取（与 auth.jwt 同一密钥来源）
+  jwt:
+    secret: ${JWT_SECRET:}
+    issuer: ${JWT_ISSUER:lightmark}
+    expire-minutes: ${JWT_EXPIRE_MINUTES:120}
 app:
   version: ${APP_VERSION:0.0.1-SNAPSHOT}
 server:
   port: ${ORDER_SERVICE_PORT:8083}
-
-lightmark:
-  jwt:
-    secret: ${JWT_SECRET:lightmark-secret-key-please-change}
-    issuer: ${JWT_ISSUER:lightmark}
-    expire-minutes: ${JWT_EXPIRE_MINUTES:120}
 
 order:
   clients:

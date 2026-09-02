@@ -1,8 +1,9 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 # =====================================================================
 # Lightmark MSA 本地一键运行（Ubuntu / macOS）
 #
-# 不需要 Kubernetes：构建并启动 4 个微服务 Docker 容器（8081-8084），
+# 不需要 Kubernetes：构建并启动 4 个微服务 Docker 容器（8081-8084）
+# 和前端 SPA 容器（默认 8080，/api 反代到已部署的 MSA 入口），
 # 数据库使用服务器现有 MySQL（默认 150.230.223.11:3306，可覆盖）。
 #
 # 用法：
@@ -33,9 +34,14 @@ export DB_HOST="${DB_HOST:-150.230.223.11}"
 export DB_PORT="${DB_PORT:-3306}"
 export DB_USER="${DB_USER:-se}"
 export DB_PASSWORD="${DB_PASSWORD:-}"
-export JWT_SECRET="${JWT_SECRET:-local-msa-dev-secret}"
+export JWT_SECRET="${JWT_SECRET:-local-msa-dev-secret-0123456789abcdef}"
 export JWT_ISSUER="${JWT_ISSUER:-lightmark}"
 export JWT_EXPIRE_MINUTES="${JWT_EXPIRE_MINUTES:-120}"
+# 前端：local 模式（默认）路由到本地 4 个服务；remote 模式反代到已部署的 MSA 入口
+export FRONTEND_API_MODE="${FRONTEND_API_MODE:-local}"
+export MSA_API_HOST="${MSA_API_HOST:-msa.lightmark.ortus.top}"
+export MSA_API_HOST_IP="${MSA_API_HOST_IP:-150.230.223.11}"
+export FRONTEND_PORT="${FRONTEND_PORT:-8080}"
 
 resolve() { # $1=目标变量名 $2=默认值
   local v="${!1:-}"
@@ -124,14 +130,31 @@ for entry in "user-service 8081" "product-service 8082" "order-service 8083" "co
   fi
 done
 
+# 前端 SPA（检查 Vue 挂载点）
+FRONTEND_UP=0
+for _ in $(seq 1 40); do
+  if curl -fsS --max-time 3 "http://127.0.0.1:${FRONTEND_PORT}/" 2>/dev/null | grep -q 'id="app"'; then
+    FRONTEND_UP=1; break
+  fi
+  sleep 5
+done
+if [ "$FRONTEND_UP" = 1 ]; then
+  echo "[OK] frontend  http://127.0.0.1:${FRONTEND_PORT}/ -> SPA 已就绪（/api 反代到 ${MSA_API_HOST}）"
+else
+  echo "[FAIL] frontend  http://127.0.0.1:${FRONTEND_PORT}/ 未就绪"
+  echo "       查看日志：docker compose -f docker-compose.local.yml logs frontend"
+  ALL_UP=0
+fi
+
 if [ "$ALL_UP" = 1 ]; then
   echo ""
   echo "=========================================================="
-  echo " 4 个微服务全部就绪"
+  echo " 本地 MSA 全部就绪"
   echo "   user-service     http://127.0.0.1:8081/api/health"
   echo "   product-service  http://127.0.0.1:8082/api/health"
   echo "   order-service    http://127.0.0.1:8083/api/health"
   echo "   content-service  http://127.0.0.1:8084/api/health"
+  echo "   frontend         http://127.0.0.1:${FRONTEND_PORT}/  （/api 反代到 ${MSA_API_HOST}）"
   echo ""
   echo " 停止：docker compose -f docker-compose.local.yml down"
   echo " 日志：docker compose -f docker-compose.local.yml logs -f <service>"
