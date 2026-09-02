@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1850" height="1080" viewBox="0 0 1850 1080">
+<rect width="100%" height="100%" fill="#e7e7e7"/>
+<style>text{font-family:"Microsoft YaHei","SimHei",Arial,sans-serif;}</style>
+<text x="75" y="48" font-size="30" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">用例图</text>
+<text x="720.0" y="84" font-size="24" fill="#555555" text-anchor="middle" dominant-baseline="text-before-edge">智能行程</text>
+<text x="1180.0" y="84" font-size="24" fill="#555555" text-anchor="middle" dominant-baseline="text-before-edge">社区互动</text>
+<ellipse cx="190.0" cy="479.09999999999997" rx="18.900000000000002" ry="18.900000000000002" fill="#fff3df" stroke="#8a8a8a" stroke-width="2"/>
+<line x1="190" y1="479.1" x2="190" y2="548.4" stroke="#777777" stroke-width="3"/>
+<line x1="145.9" y1="514.8" x2="234.1" y2="514.8" stroke="#777777" stroke-width="3"/>
+<line x1="190" y1="548.4" x2="150.1" y2="613.5" stroke="#777777" stroke-width="3"/>
+<line x1="190" y1="548.4" x2="229.9" y2="613.5" stroke="#777777" stroke-width="3"/>
+<text x="190.0" y="634.5" font-size="27" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">用户</text>
+<ellipse cx="1660.0" cy="277.8" rx="16.2" ry="16.2" fill="#fff3df" stroke="#8a8a8a" stroke-width="2"/>
+<line x1="1660" y1="277.8" x2="1660" y2="337.2" stroke="#777777" stroke-width="3"/>
+<line x1="1622.2" y1="308.4" x2="1697.8" y2="308.4" stroke="#777777" stroke-width="3"/>
+<line x1="1660" y1="337.2" x2="1625.8" y2="393.0" stroke="#777777" stroke-width="3"/>
+<line x1="1660" y1="337.2" x2="1694.2" y2="393.0" stroke="#777777" stroke-width="3"/>
+<text x="1660.0" y="411.0" font-size="23" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">AI服务</text>
+<ellipse cx="1660.0" cy="737.8000000000001" rx="16.2" ry="16.2" fill="#fff3df" stroke="#8a8a8a" stroke-width="2"/>
+<line x1="1660" y1="737.8" x2="1660" y2="797.2" stroke="#777777" stroke-width="3"/>
+<line x1="1622.2" y1="768.4" x2="1697.8" y2="768.4" stroke="#777777" stroke-width="3"/>
+<line x1="1660" y1="797.2" x2="1625.8" y2="853.0" stroke="#777777" stroke-width="3"/>
+<line x1="1660" y1="797.2" x2="1694.2" y2="853.0" stroke="#777777" stroke-width="3"/>
+<text x="1660.0" y="871.0" font-size="23" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">官方/管理员</text>
+<ellipse cx="700.0" cy="180.0" rx="215.0" ry="56.0" fill="#d7e5f7" stroke="#858585" stroke-width="2"/>
+<text x="700.0" y="142.0" font-size="24" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">&lt;&lt;UseCase&gt;&gt;</text>
+<text x="700.0" y="182.0" font-size="27" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">手动规划行程</text>
+<ellipse cx="700.0" cy="320.0" rx="215.0" ry="56.0" fill="#d7e5f7" stroke="#858585" stroke-width="2"/>
+<text x="700.0" y="282.0" font-size="24" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">&lt;&lt;UseCase&gt;&gt;</text>
+<text x="700.0" y="322.0" font-size="27" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">AI生成个性化行程</text>
+<ellipse cx="700.0" cy="460.0" rx="215.0" ry="56.0" fill="#d7e5f7" stroke="#858585" stroke-width="2"/>
+<text x="700.0" y="422.0" font-size="24" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">&lt;&lt;UseCase&gt;&gt;</text>
+<text x="700.0" y="462.0" font-size="27" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">分享/导出行程</text>
+<ellipse cx="700.0" cy="600.0" rx="215.0" ry="56.0" fill="#d7e5f7" stroke="#858585" stroke-width="2"/>
+<text x="700.0" y="562.0" font-size="24" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">&lt;&lt;UseCase&gt;&gt;</text>
+<text x="700.0" y="602.0" font-size="27" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">接收行前提醒</text>
+<ellipse cx="700.0" cy="740.0" rx="215.0" ry="56.0" fill="#d7e5f7" stroke="#858585" stroke-width="2"/>
+<text x="700.0" y="702.0" font-size="24" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">&lt;&lt;UseCase&gt;&gt;</text>
+<text x="700.0" y="742.0" font-size="27" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">当地玩乐推荐</text>
+<ellipse cx="700.0" cy="880.0" rx="215.0" ry="56.0" fill="#d7e5f7" stroke="#858585" stroke-width="2"/>
+<text x="700.0" y="842.0" font-size="24" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">&lt;&lt;UseCase&gt;&gt;</text>
+<text x="700.0" y="882.0" font-size="27" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">游记自动生成</text>
+<ellipse cx="1180.0" cy="250.0" rx="215.0" ry="56.0" fill="#d7e5f7" stroke="#858585" stroke-width="2"/>
+<text x="1180.0" y="212.0" font-size="24" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">&lt;&lt;UseCase&gt;&gt;</text>
+<text x="1180.0" y="252.0" font-size="27" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">发布订单评价</text>
+<ellipse cx="1180.0" cy="390.0" rx="215.0" ry="56.0" fill="#d7e5f7" stroke="#858585" stroke-width="2"/>
+<text x="1180.0" y="352.0" font-size="24" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">&lt;&lt;UseCase&gt;&gt;</text>
+<text x="1180.0" y="392.0" font-size="27" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">发布游记</text>
+<ellipse cx="1180.0" cy="530.0" rx="215.0" ry="56.0" fill="#d7e5f7" stroke="#858585" stroke-width="2"/>
+<text x="1180.0" y="492.0" font-size="24" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">&lt;&lt;UseCase&gt;&gt;</text>
+<text x="1180.0" y="532.0" font-size="27" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">点赞/评论/收藏</text>
+<ellipse cx="1180.0" cy="670.0" rx="215.0" ry="56.0" fill="#d7e5f7" stroke="#858585" stroke-width="2"/>
+<text x="1180.0" y="632.0" font-size="24" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">&lt;&lt;UseCase&gt;&gt;</text>
+<text x="1180.0" y="672.0" font-size="27" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">问答社区</text>
+<ellipse cx="1180.0" cy="810.0" rx="215.0" ry="56.0" fill="#d7e5f7" stroke="#858585" stroke-width="2"/>
+<text x="1180.0" y="772.0" font-size="24" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">&lt;&lt;UseCase&gt;&gt;</text>
+<text x="1180.0" y="812.0" font-size="27" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">评论情感分析与自动回复</text>
+<ellipse cx="1180.0" cy="950.0" rx="215.0" ry="56.0" fill="#d7e5f7" stroke="#858585" stroke-width="2"/>
+<text x="1180.0" y="912.0" font-size="24" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">&lt;&lt;UseCase&gt;&gt;</text>
+<text x="1180.0" y="952.0" font-size="27" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">智能问答机器人</text>
+<line x1="260" y1="540" x2="410" y2="540" stroke="#222222" stroke-width="3"/>
+<line x1="410" y1="180" x2="410" y2="950" stroke="#222222" stroke-width="3"/>
+<line x1="410" y1="180.0" x2="485.0" y2="180.0" stroke="#222222" stroke-width="3"/>
+<line x1="410" y1="320.0" x2="485.0" y2="320.0" stroke="#222222" stroke-width="3"/>
+<line x1="410" y1="460.0" x2="485.0" y2="460.0" stroke="#222222" stroke-width="3"/>
+<line x1="410" y1="600.0" x2="485.0" y2="600.0" stroke="#222222" stroke-width="3"/>
+<line x1="410" y1="740.0" x2="485.0" y2="740.0" stroke="#222222" stroke-width="3"/>
+<line x1="410" y1="880.0" x2="485.0" y2="880.0" stroke="#222222" stroke-width="3"/>
+<line x1="410" y1="250.0" x2="965.0" y2="250.0" stroke="#222222" stroke-width="3"/>
+<line x1="410" y1="390.0" x2="965.0" y2="390.0" stroke="#222222" stroke-width="3"/>
+<line x1="410" y1="530.0" x2="965.0" y2="530.0" stroke="#222222" stroke-width="3"/>
+<line x1="410" y1="670.0" x2="965.0" y2="670.0" stroke="#222222" stroke-width="3"/>
+<line x1="410" y1="950.0" x2="965.0" y2="950.0" stroke="#222222" stroke-width="3"/>
+<line x1="1590" y1="330" x2="1495" y2="330" stroke="#222222" stroke-width="2"/>
+<line x1="1495" y1="320" x2="1495" y2="950" stroke="#222222" stroke-width="2"/>
+<line x1="915.0" y1="320.0" x2="1495" y2="320.0" stroke="#222222" stroke-width="2"/>
+<line x1="915.0" y1="880.0" x2="1495" y2="880.0" stroke="#222222" stroke-width="2"/>
+<line x1="1395.0" y1="810.0" x2="1495" y2="810.0" stroke="#222222" stroke-width="2"/>
+<line x1="1395.0" y1="950.0" x2="1495" y2="950.0" stroke="#222222" stroke-width="2"/>
+<line x1="1590" y1="790" x2="1515" y2="790" stroke="#222222" stroke-width="2"/>
+<line x1="1515" y1="670" x2="1515" y2="810" stroke="#222222" stroke-width="2"/>
+<line x1="1395.0" y1="670.0" x2="1515" y2="670.0" stroke="#222222" stroke-width="2"/>
+<line x1="1395.0" y1="810.0" x2="1515" y2="810.0" stroke="#222222" stroke-width="2"/>
+</svg>

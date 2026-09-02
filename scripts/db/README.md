@@ -12,6 +12,7 @@
 - `split-mysql.sh`
   - 按表归属把单体库中的数据导出并导入到 4 个 schema
   - 默认输出拆分 SQL 到 `artifacts/db-split/`
+  - 只导出单体中实际存在的表；`hotel_order_detail`、`invoice_application` 是 order-service 的 MSA 新表，由 Flyway 创建，不参与导出
 
 ## 环境变量
 
@@ -24,6 +25,8 @@
 - `PRODUCT_SCHEMA`
 - `ORDER_SCHEMA`
 - `CONTENT_SCHEMA`
+
+`MYSQL_PASSWORD` 没有仓库内默认值，必须通过环境变量或安全的部署 Secret 提供。
 
 ## 用法
 

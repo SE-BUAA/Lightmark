@@ -2,8 +2,10 @@ package top.ortus.lightmark.order;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
-@SpringBootApplication(scanBasePackages = "top.ortus.lightmark")
+@SpringBootApplication(scanBasePackages = "top.ortus.lightmark.order")
+@EnableScheduling
 public class OrderServiceApplication {
 
     public static void main(String[] args) {

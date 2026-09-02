@@ -2,7 +2,7 @@ package top.ortus.lightmark.order.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.ortus.lightmark.common.ApiResponse;
+import top.ortus.lightmark.order.tools.ApiResponse;
 
 import java.util.Map;
 
