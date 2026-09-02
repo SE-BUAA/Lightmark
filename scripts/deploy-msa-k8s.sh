@@ -136,19 +136,28 @@ if [ -n "${GHCR_USERNAME:-}" ] && [ -n "${GHCR_PAT:-}" ]; then
 fi
 
 STAGE="tls"
-if [ -f "$CERT_DIR/origin.crt" ] && [ -f "$CERT_DIR/origin.key" ]; then
-  $KUBECTL create secret tls lightmark-tls --cert="$CERT_DIR/origin.crt" --key="$CERT_DIR/origin.key" \
-    -n "$NAMESPACE" --dry-run=client -o yaml | $KUBECTL apply -f -
+# MSA 专用 TLS secret（与单体 lightmark-tls 分开，互不影响）：
+# 优先使用 CERT_DIR/msa-origin.crt|key（如 Cloudflare 通配 origin 证书），
+# 否则生成带 SAN 的自签名证书（浏览器会提示不安全，仅供演示/联调）。
+TLS_CRT=""
+TLS_KEY=""
+if [ -f "$CERT_DIR/msa-origin.crt" ] && [ -f "$CERT_DIR/msa-origin.key" ]; then
+  TLS_CRT="$CERT_DIR/msa-origin.crt"
+  TLS_KEY="$CERT_DIR/msa-origin.key"
 else
   TMP_TLS="$(mktemp -d)"
   openssl req -x509 -newkey rsa:2048 -nodes -days 365 \
     -keyout "$TMP_TLS/tls.key" -out "$TMP_TLS/tls.crt" \
-    -subj "/CN=$MSA_INGRESS_HOST" >/dev/null 2>&1
-  $KUBECTL create secret tls lightmark-tls --cert="$TMP_TLS/tls.crt" --key="$TMP_TLS/tls.key" \
-    -n "$NAMESPACE" --dry-run=client -o yaml | $KUBECTL apply -f -
-  rm -rf "$TMP_TLS"
-  echo "[WARN] 未找到证书，已生成自签名证书（浏览器会提示不安全）"
+    -subj "/CN=$MSA_INGRESS_HOST" \
+    -addext "subjectAltName=DNS:$MSA_INGRESS_HOST" >/dev/null 2>&1
+  TLS_CRT="$TMP_TLS/tls.crt"
+  TLS_KEY="$TMP_TLS/tls.key"
+  echo "[WARN] 未找到 $CERT_DIR/msa-origin.crt|key，已为 ${MSA_INGRESS_HOST} 生成自签名证书（浏览器会提示不安全）"
 fi
+$KUBECTL create secret tls lightmark-msa-tls --cert="$TLS_CRT" --key="$TLS_KEY" \
+  -n "$NAMESPACE" --dry-run=client -o yaml | $KUBECTL apply -f -
+if [ -n "${TMP_TLS:-}" ]; then rm -rf "$TMP_TLS"; fi
+echo "[OK] lightmark-msa-tls 已更新（${MSA_INGRESS_HOST}）"
 
 # =====================================================================
 # [2/8] 确保 k8s 内 MySQL 存在（缺失时创建并等待首次初始化完成）
