@@ -1,0 +1,215 @@
+# =====================================================================
+# MSA 独立 Ingress（k3s 内置 Traefik；如使用其他集群请改为对应 ingressClassName）
+#
+# - 域名占位符 __MSA_INGRESS_HOST__ 由 scripts/deploy-msa-k8s.sh 渲染
+#   （默认 msa.lightmark.ortus.top，与单体入口 lightmark.ortus.top 互不冲突）
+# - Traefik 按最长路径前缀匹配，因此 /api/flights/order、/api/hotel/order 等
+#   会优先命中 order-service，而 /api/flights、/api/hotel 等落到 product-service
+# - TLS 证书 Secret lightmark-tls 由部署脚本保证存在（服务器证书或自签名）
+# - 已知路由边界：/api/hotel/{hotelId}/reviews（订单评价）前缀为 /api/hotel，
+#   会命中 product-service；如需精确路由可改用 Traefik IngressRoute + PathRegexp
+# =====================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: lightmark-msa-ingress
+  namespace: lightmark
+  labels:
+    app: lightmark
+    tier: msa
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - __MSA_INGRESS_HOST__
+      secretName: lightmark-tls
+  rules:
+    - host: __MSA_INGRESS_HOST__
+      http:
+        paths:
+          # ---- user-service（认证/用户域） ----
+          - path: /api/auth
+            pathType: Prefix
+            backend:
+              service:
+                name: user-service
+                port:
+                  number: 8081
+          - path: /api/user
+            pathType: Prefix
+            backend:
+              service:
+                name: user-service
+                port:
+                  number: 8081
+          - path: /api/admin/users
+            pathType: Prefix
+            backend:
+              service:
+                name: user-service
+                port:
+                  number: 8081
+          - path: /api/admin/logs
+            pathType: Prefix
+            backend:
+              service:
+                name: user-service
+                port:
+                  number: 8081
+          - path: /api/admin
+            pathType: Prefix
+            backend:
+              service:
+                name: user-service
+                port:
+                  number: 8081
+          - path: /api/health
+            pathType: Prefix
+            backend:
+              service:
+                name: user-service
+                port:
+                  number: 8081
+          # ---- order-service（订单/交易域；长前缀优先于 product 的 /api/flights 等） ----
+          - path: /api/flights/order
+            pathType: Prefix
+            backend:
+              service:
+                name: order-service
+                port:
+                  number: 8083
+          - path: /api/trains/order
+            pathType: Prefix
+            backend:
+              service:
+                name: order-service
+                port:
+                  number: 8083
+          - path: /api/vacations/order
+            pathType: Prefix
+            backend:
+              service:
+                name: order-service
+                port:
+                  number: 8083
+          - path: /api/hotel/order
+            pathType: Prefix
+            backend:
+              service:
+                name: order-service
+                port:
+                  number: 8083
+          - path: /api/orders
+            pathType: Prefix
+            backend:
+              service:
+                name: order-service
+                port:
+                  number: 8083
+          - path: /api/admin/orders
+            pathType: Prefix
+            backend:
+              service:
+                name: order-service
+                port:
+                  number: 8083
+          # ---- product-service（产品域） ----
+          - path: /api/flights
+            pathType: Prefix
+            backend:
+              service:
+                name: product-service
+                port:
+                  number: 8082
+          - path: /api/hotels
+            pathType: Prefix
+            backend:
+              service:
+                name: product-service
+                port:
+                  number: 8082
+          - path: /api/hotel
+            pathType: Prefix
+            backend:
+              service:
+                name: product-service
+                port:
+                  number: 8082
+          - path: /api/trains
+            pathType: Prefix
+            backend:
+              service:
+                name: product-service
+                port:
+                  number: 8082
+          - path: /api/vacations
+            pathType: Prefix
+            backend:
+              service:
+                name: product-service
+                port:
+                  number: 8082
+          - path: /api/products
+            pathType: Prefix
+            backend:
+              service:
+                name: product-service
+                port:
+                  number: 8082
+          - path: /api/legacy
+            pathType: Prefix
+            backend:
+              service:
+                name: product-service
+                port:
+                  number: 8082
+          - path: /api/admin/products
+            pathType: Prefix
+            backend:
+              service:
+                name: product-service
+                port:
+                  number: 8082
+          # ---- content-service（内容/AI/行程域） ----
+          - path: /api/chat
+            pathType: Prefix
+            backend:
+              service:
+                name: content-service
+                port:
+                  number: 8084
+          - path: /api/ai
+            pathType: Prefix
+            backend:
+              service:
+                name: content-service
+                port:
+                  number: 8084
+          - path: /api/itinerary
+            pathType: Prefix
+            backend:
+              service:
+                name: content-service
+                port:
+                  number: 8084
+          - path: /api/community
+            pathType: Prefix
+            backend:
+              service:
+                name: content-service
+                port:
+                  number: 8084
+          - path: /api/posts
+            pathType: Prefix
+            backend:
+              service:
+                name: content-service
+                port:
+                  number: 8084
+          - path: /api/questions
+            pathType: Prefix
+            backend:
+              service:
+                name: content-service
+                port:
+                  number: 8084

@@ -1,0 +1,122 @@
+# =====================================================================
+# Lightmark MSA 本地一键运行（无需 Kubernetes，仅 4 个 Docker 容器）
+#
+# 用法：
+#   bash msa/run-local.sh          # Ubuntu / macOS
+#   powershell msa/run-local.ps1   # Windows
+#
+# 数据库使用服务器现有 MySQL（默认 150.230.223.11:3306，可用环境变量覆盖）。
+# 首次运行会自动尝试创建 lightmark_user/product/order/content 4 个 schema
+# 并授权（见 run-local.sh 中的引导 SQL）；无建库权限时脚本会给出提示。
+#
+# 所有变量均可用环境变量覆盖，或直接编辑仓库根目录 .env（会被自动读取）：
+#   DB_HOST / DB_PORT / DB_USER / DB_PASSWORD / JWT_SECRET
+#   USER_DB_* / PRODUCT_DB_* / ORDER_DB_* / CONTENT_DB_*（按需覆盖默认 schema）
+# =====================================================================
+name: lightmark-msa-local
+
+services:
+  user-service:
+    build:
+      context: ..
+      dockerfile: msa/user-service/Dockerfile
+    container_name: lightmark-msa-user
+    ports:
+      - "8081:8081"
+    environment:
+      USER_SERVICE_PORT: "8081"
+      USER_DB_HOST: ${USER_DB_HOST:-150.230.223.11}
+      USER_DB_PORT: ${USER_DB_PORT:-3306}
+      USER_DB_NAME: ${USER_DB_NAME:-lightmark_user}
+      USER_DB_USER: ${USER_DB_USER:-se}
+      USER_DB_PASSWORD: ${USER_DB_PASSWORD:-}
+      USER_FLYWAY_ENABLED: ${USER_FLYWAY_ENABLED:-true}
+      JWT_SECRET: ${JWT_SECRET:-local-msa-dev-secret}
+      JWT_ISSUER: ${JWT_ISSUER:-lightmark}
+      JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-120}
+      AUTH_MAIL_USERNAME: ${AUTH_MAIL_USERNAME:-}
+      AUTH_MAIL_PASSWORD: ${AUTH_MAIL_PASSWORD:-}
+      AUTH_MAIL_FROM_EMAIL: ${AUTH_MAIL_FROM_EMAIL:-}
+      OBJECT_STORAGE_BASE_URL: ${OBJECT_STORAGE_BASE_URL:-}
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget -qO- http://127.0.0.1:8081/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  product-service:
+    build:
+      context: ..
+      dockerfile: msa/product-service/Dockerfile
+    container_name: lightmark-msa-product
+    ports:
+      - "8082:8082"
+    environment:
+      PRODUCT_SERVICE_PORT: "8082"
+      PRODUCT_DB_HOST: ${PRODUCT_DB_HOST:-150.230.223.11}
+      PRODUCT_DB_PORT: ${PRODUCT_DB_PORT:-3306}
+      PRODUCT_DB_NAME: ${PRODUCT_DB_NAME:-lightmark_product}
+      PRODUCT_DB_USER: ${PRODUCT_DB_USER:-se}
+      PRODUCT_DB_PASSWORD: ${PRODUCT_DB_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-local-msa-dev-secret}
+      JWT_ISSUER: ${JWT_ISSUER:-lightmark}
+      JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-120}
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget -qO- http://127.0.0.1:8082/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  order-service:
+    build:
+      context: ..
+      dockerfile: msa/order-service/Dockerfile
+    container_name: lightmark-msa-order
+    ports:
+      - "8083:8083"
+    environment:
+      ORDER_SERVICE_PORT: "8083"
+      ORDER_DB_HOST: ${ORDER_DB_HOST:-150.230.223.11}
+      ORDER_DB_PORT: ${ORDER_DB_PORT:-3306}
+      ORDER_DB_NAME: ${ORDER_DB_NAME:-lightmark_order}
+      ORDER_DB_USER: ${ORDER_DB_USER:-se}
+      ORDER_DB_PASSWORD: ${ORDER_DB_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-local-msa-dev-secret}
+      JWT_ISSUER: ${JWT_ISSUER:-lightmark}
+      JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-120}
+      # 容器网络内通过服务名互相调用
+      PRODUCT_SERVICE_BASE_URL: http://product-service:8082
+      USER_SERVICE_BASE_URL: http://user-service:8081
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget -qO- http://127.0.0.1:8083/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  content-service:
+    build:
+      context: ..
+      dockerfile: msa/content-service/Dockerfile
+    container_name: lightmark-msa-content
+    ports:
+      - "8084:8084"
+    environment:
+      CONTENT_SERVICE_PORT: "8084"
+      CONTENT_DB_HOST: ${CONTENT_DB_HOST:-150.230.223.11}
+      CONTENT_DB_PORT: ${CONTENT_DB_PORT:-3306}
+      CONTENT_DB_NAME: ${CONTENT_DB_NAME:-lightmark_content}
+      CONTENT_DB_USER: ${CONTENT_DB_USER:-se}
+      CONTENT_DB_PASSWORD: ${CONTENT_DB_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-local-msa-dev-secret}
+      JWT_ISSUER: ${JWT_ISSUER:-lightmark}
+      JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-120}
+      LIGHTMARK_SERVICES_USER_URL: http://user-service:8081
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget -qO- http://127.0.0.1:8084/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s

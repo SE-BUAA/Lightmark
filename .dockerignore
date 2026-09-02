@@ -1,0 +1,21 @@
+# 仓库根目录作为构建上下文时（msa/*/Dockerfile）排除无关内容，加快构建。
+.git
+.github
+**/target
+**/.idea
+**/.vscode
+.claude
+.claude-ppt-work
+.history
+docs
+database
+backend
+frontend
+deploy
+scripts
+.env
+server.env
+*.tar.gz
+node_modules
+.m2
+test.txt
