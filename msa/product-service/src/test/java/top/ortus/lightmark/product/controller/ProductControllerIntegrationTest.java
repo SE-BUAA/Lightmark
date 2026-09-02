@@ -2,6 +2,7 @@ package top.ortus.lightmark.product.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -9,6 +10,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import top.ortus.lightmark.common.PageResponse;
+import top.ortus.lightmark.common.security.JwtTokenService;
 import top.ortus.lightmark.common.exception.GlobalExceptionHandler;
 import top.ortus.lightmark.product.dto.HotelDTO;
 import top.ortus.lightmark.product.dto.ProductDTO;
@@ -31,14 +33,20 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(ProductController.class)
-@Import(GlobalExceptionHandler.class)
+@Import({GlobalExceptionHandler.class, top.ortus.lightmark.product.config.JwtConfig.class})
+@org.springframework.test.context.TestPropertySource(properties = "lightmark.auth.jwt.secret=test-secret-key-at-least-32-bytes-long")
 class ProductControllerIntegrationTest {
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper mapper;
+    @Autowired JwtTokenService jwt;
+    private String auth;
     @MockBean FlightProductService flights;
     @MockBean HotelProductService hotels;
     @MockBean VacationProductService vacations;
     @MockBean TrainProductService trains;
+
+    @BeforeEach
+    void setUp() { auth = "Bearer " + jwt.createToken(1L, "integration-test", java.util.List.of("USER")); }
 
     @Test
     void flightSearchAndDetailExposeCommonResponse() throws Exception {
@@ -114,9 +122,9 @@ class ProductControllerIntegrationTest {
         when(flights.adjustInventory(42L, 3, false)).thenReturn(true);
         when(flights.views(eq(42L), isNull(), anyMap())).thenReturn(new PageResponse<>(0, List.of()));
 
-        mvc.perform(post("/api/internal/product/42/stock").contentType(MediaType.APPLICATION_JSON).content("{\"delta\":-2}"))
+        mvc.perform(post("/api/internal/product/42/stock").header("Authorization", auth).contentType(MediaType.APPLICATION_JSON).content("{\"delta\":-2}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data").value(true));
-        mvc.perform(post("/api/internal/product/42/stock").contentType(MediaType.APPLICATION_JSON).content("{\"delta\":3}"))
+        mvc.perform(post("/api/internal/product/42/stock").header("Authorization", auth).contentType(MediaType.APPLICATION_JSON).content("{\"delta\":3}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data").value(true));
         mvc.perform(post("/api/products/42/views").contentType(MediaType.APPLICATION_JSON).content("{\"userId\":5,\"source\":\"WEB\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.code").value(0));
@@ -128,7 +136,7 @@ class ProductControllerIntegrationTest {
 
     @Test
     void invalidInternalStockPayloadReturnsBadRequest() throws Exception {
-        mvc.perform(post("/api/internal/product/not-a-number/stock").contentType(MediaType.APPLICATION_JSON).content("{\"delta\":-1}"))
+        mvc.perform(post("/api/internal/product/not-a-number/stock").header("Authorization", auth).contentType(MediaType.APPLICATION_JSON).content("{\"delta\":-1}"))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value(400));
         verifyNoInteractions(flights);
     }
