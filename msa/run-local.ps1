@@ -2,8 +2,8 @@
 # Lightmark MSA 本地一键运行（Windows PowerShell）
 #
 # 不需要 Kubernetes：构建并启动 4 个微服务 Docker 容器（8081-8084）
-# 和前端 SPA 容器（默认 8080，/api 反代到已部署的 MSA 入口），
-# 数据库使用服务器现有 MySQL（默认 150.230.223.11:3306，可覆盖）。
+# 和前端 SPA 容器（默认 8080；/api 默认路由到本地微服务，FRONTEND_API_MODE=remote
+# 时反代到已部署的 MSA 入口），数据库使用服务器现有 MySQL（默认 150.230.223.11:3306，可覆盖）。
 #
 # 用法：
 #   powershell -ExecutionPolicy Bypass -File msa/run-local.ps1
@@ -144,6 +144,9 @@ foreach ($entry in @(@("user-service", 8081), @("product-service", 8082), @("ord
 # 前端 SPA（检查 Vue 挂载点）
 $frontendPort = [Environment]::GetEnvironmentVariable("FRONTEND_PORT")
 $msaApiHost   = [Environment]::GetEnvironmentVariable("MSA_API_HOST")
+$frontendMode = [Environment]::GetEnvironmentVariable("FRONTEND_API_MODE")
+$frontendNote = "（/api 路由到本地微服务）"
+if ($frontendMode -eq "remote") { $frontendNote = "（/api 反代到 $msaApiHost）" }
 $frontendUp = $false
 for ($i = 0; $i -lt 40; $i++) {
     try {
@@ -154,7 +157,7 @@ for ($i = 0; $i -lt 40; $i++) {
     Start-Sleep -Seconds 5
 }
 if ($frontendUp) {
-    Write-Host "[OK] frontend  http://127.0.0.1:${frontendPort}/ -> SPA 已就绪（/api 反代到 $msaApiHost）"
+    Write-Host "[OK] frontend  http://127.0.0.1:${frontendPort}/ -> SPA 已就绪 $frontendNote"
 }
 else {
     Write-Host "[FAIL] frontend  http://127.0.0.1:${frontendPort}/ 未就绪"
@@ -170,7 +173,7 @@ if ($allUp) {
     Write-Host "   product-service  http://127.0.0.1:8082/api/health"
     Write-Host "   order-service    http://127.0.0.1:8083/api/health"
     Write-Host "   content-service  http://127.0.0.1:8084/api/health"
-    Write-Host "   frontend         http://127.0.0.1:${frontendPort}/  （/api 反代到 $msaApiHost）"
+    Write-Host "   frontend         http://127.0.0.1:${frontendPort}/  $frontendNote"
     Write-Host ""
     Write-Host " 停止：docker compose -f docker-compose.local.yml down"
     Write-Host " 日志：docker compose -f docker-compose.local.yml logs -f <service>"

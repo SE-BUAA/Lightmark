@@ -1,10 +1,10 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 # =====================================================================
 # Lightmark MSA 本地一键运行（Ubuntu / macOS）
 #
 # 不需要 Kubernetes：构建并启动 4 个微服务 Docker 容器（8081-8084）
-# 和前端 SPA 容器（默认 8080，/api 反代到已部署的 MSA 入口），
-# 数据库使用服务器现有 MySQL（默认 150.230.223.11:3306，可覆盖）。
+# 和前端 SPA 容器（默认 8080；/api 默认路由到本地微服务，FRONTEND_API_MODE=remote
+# 时反代到已部署的 MSA 入口），数据库使用服务器现有 MySQL（默认 150.230.223.11:3306，可覆盖）。
 #
 # 用法：
 #   bash msa/run-local.sh
@@ -131,6 +131,8 @@ for entry in "user-service 8081" "product-service 8082" "order-service 8083" "co
 done
 
 # 前端 SPA（检查 Vue 挂载点）
+FRONTEND_NOTE="（/api 路由到本地微服务）"
+[ "$FRONTEND_API_MODE" = "remote" ] && FRONTEND_NOTE="（/api 反代到 ${MSA_API_HOST}）"
 FRONTEND_UP=0
 for _ in $(seq 1 40); do
   if curl -fsS --max-time 3 "http://127.0.0.1:${FRONTEND_PORT}/" 2>/dev/null | grep -q 'id="app"'; then
@@ -139,7 +141,7 @@ for _ in $(seq 1 40); do
   sleep 5
 done
 if [ "$FRONTEND_UP" = 1 ]; then
-  echo "[OK] frontend  http://127.0.0.1:${FRONTEND_PORT}/ -> SPA 已就绪（/api 反代到 ${MSA_API_HOST}）"
+  echo "[OK] frontend  http://127.0.0.1:${FRONTEND_PORT}/ -> SPA 已就绪 ${FRONTEND_NOTE}"
 else
   echo "[FAIL] frontend  http://127.0.0.1:${FRONTEND_PORT}/ 未就绪"
   echo "       查看日志：docker compose -f docker-compose.local.yml logs frontend"
@@ -154,7 +156,7 @@ if [ "$ALL_UP" = 1 ]; then
   echo "   product-service  http://127.0.0.1:8082/api/health"
   echo "   order-service    http://127.0.0.1:8083/api/health"
   echo "   content-service  http://127.0.0.1:8084/api/health"
-  echo "   frontend         http://127.0.0.1:${FRONTEND_PORT}/  （/api 反代到 ${MSA_API_HOST}）"
+  echo "   frontend         http://127.0.0.1:${FRONTEND_PORT}/  ${FRONTEND_NOTE}"
   echo ""
   echo " 停止：docker compose -f docker-compose.local.yml down"
   echo " 日志：docker compose -f docker-compose.local.yml logs -f <service>"
