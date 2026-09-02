@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import top.ortus.lightmark.order.tools.ApiException;
 import top.ortus.lightmark.order.tools.ApiResponse;
+import top.ortus.lightmark.common.security.JwtTokenService;
 
 import java.time.Duration;
 import java.util.Map;
@@ -18,11 +19,14 @@ public class ProductClient {
 
     private final WebClient webClient;
     private final Duration timeout;
+    private final JwtTokenService jwtTokenService;
 
     public ProductClient(@Qualifier("productWebClient") WebClient webClient,
-                         @Value("${order.clients.timeout-ms:3000}") long timeoutMs) {
+                         @Value("${order.clients.timeout-ms:3000}") long timeoutMs,
+                         JwtTokenService jwtTokenService) {
         this.webClient = webClient;
         this.timeout = Duration.ofMillis(timeoutMs);
+        this.jwtTokenService = jwtTokenService;
     }
 
     @Retry(name = "product-service")
@@ -30,6 +34,7 @@ public class ProductClient {
     public Map<String, Object> getProduct(String productId) {
         ApiResponse<Map<String, Object>> response = webClient.get()
                 .uri("/internal/product/{id}", productId)
+                .headers(headers -> headers.setBearerAuth(serviceToken()))
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<ApiResponse<Map<String, Object>>>() {})
                 .block(timeout);
@@ -44,6 +49,7 @@ public class ProductClient {
     public void adjustStock(String productId, int delta) {
         ApiResponse<Boolean> response = webClient.post()
                 .uri("/internal/product/{id}/stock", productId)
+                .headers(headers -> headers.setBearerAuth(serviceToken()))
                 .bodyValue(Map.of("delta", delta))
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<ApiResponse<Boolean>>() {})
@@ -51,6 +57,10 @@ public class ProductClient {
         if (response == null || response.getCode() != 0 || !Boolean.TRUE.equals(response.getData())) {
             throw new ApiException(503, response == null ? "product service unavailable" : response.getMsg());
         }
+    }
+
+    private String serviceToken() {
+        return jwtTokenService.createToken(0L, "order-service", java.util.List.of("SERVICE"));
     }
 
     @SuppressWarnings("unused")
