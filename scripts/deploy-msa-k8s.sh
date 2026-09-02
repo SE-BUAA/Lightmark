@@ -9,8 +9,8 @@
 #   3) 数据库拆分：把单体 lightmark 的 20 张表拆分导入 4 个 MSA schema，
 #      并给应用账号授权（幂等，可重复执行；复用 scripts/db/split-mysql.sh）
 #   4) 为 4 个服务生成独立 Secret（只从服务器配置文件读取，不落盘到 Git）
-#   5) 渲染并部署 user/product/order/content 4 个服务 + MSA 独立 Ingress
-#   6) 等待全部 Deployment 就绪，逐服务端口转发健康检查
+#   5) 渲染并部署 user/product/order/content 4 个服务 + 前端 msa-frontend + MSA 独立 Ingress
+#   6) 等待全部 Deployment 就绪，逐服务端口转发健康检查（含前端首页 Vue 挂载点）
 #
 # 必需环境变量：TAG、REPO
 # 可选环境变量：REGISTRY、NAMESPACE、DEPLOY_DIR、KUBECTL、ENV_FILE、
@@ -260,7 +260,7 @@ for svc in "${SERVICES[@]}"; do
 done
 
 # =====================================================================
-# [5/8] 渲染并应用 4 个服务清单 + MSA Ingress
+# [5/8] 渲染并应用 4 个服务 + 前端 + MSA Ingress
 # =====================================================================
 STAGE="apply"
 for svc in "${SERVICES[@]}"; do
@@ -272,6 +272,12 @@ for svc in "${SERVICES[@]}"; do
   $KUBECTL apply -f "$RENDER_DIR/${svc}-service.yaml"
   echo "[OK] ${svc}-service 已应用（镜像 ${IMG}）"
 done
+
+FRONTEND_IMG="$REGISTRY/$REPO/frontend:frontend-$TAG"
+sed "s|__IMAGE_FRONTEND__|${FRONTEND_IMG}|g" \
+  "$ROOT_DIR/deploy/k8s/msa/frontend.yaml" > "$RENDER_DIR/frontend.yaml"
+$KUBECTL apply -f "$RENDER_DIR/frontend.yaml"
+echo "[OK] msa-frontend 已应用（镜像 ${FRONTEND_IMG}）"
 
 sed "s|__MSA_INGRESS_HOST__|${MSA_INGRESS_HOST}|g" \
   "$ROOT_DIR/deploy/k8s/msa/msa-ingress.yaml" > "$RENDER_DIR/msa-ingress.yaml"
@@ -285,6 +291,7 @@ STAGE="rollout"
 for svc in "${SERVICES[@]}"; do
   $KUBECTL rollout status "deployment/${svc}-service" -n "$NAMESPACE" --timeout=420s
 done
+$KUBECTL rollout status "deployment/msa-frontend" -n "$NAMESPACE" --timeout=180s
 
 # =====================================================================
 # [7/8] 逐服务端口转发健康检查（user 额外检查 ready/version）
@@ -316,10 +323,26 @@ for svc in "${SERVICES[@]}"; do
   PF_PID=""
 done
 
+# 前端静态页验收（Vue 挂载点 id="app"）
+LOCAL_PORT="18080"
+$KUBECTL port-forward -n "$NAMESPACE" "service/msa-frontend" "${LOCAL_PORT}:80" >"$RENDER_DIR/frontend-pf.log" 2>&1 &
+PF_PID=$!
+UP=0
+for _ in $(seq 1 20); do
+  if curl -fsS --max-time 3 "http://127.0.0.1:${LOCAL_PORT}/" 2>/dev/null | grep -q 'id="app"'; then
+    UP=1; break
+  fi
+  sleep 1
+done
+[ "$UP" = 1 ] || { echo "[FATAL] msa-frontend 首页未就绪（缺少 Vue 挂载点 id=\"app\"）" >&2; exit 1; }
+echo "[OK] msa-frontend 首页检查通过（Vue 挂载点存在）"
+kill "$PF_PID" 2>/dev/null || true
+PF_PID=""
+
 log_record "SUCCESS" "msa_ingress=${MSA_INGRESS_HOST}"
 echo ""
 echo "[OK] MSA 全部服务部署成功"
-echo "    入口：https://${MSA_INGRESS_HOST}（/api/auth、/api/flights、/api/orders、/api/chat 等前缀路由）"
+echo "    前端入口：https://${MSA_INGRESS_HOST}（/api/auth、/api/flights、/api/orders、/api/chat 等前缀路由到各服务）"
 for svc in "${SERVICES[@]}"; do
   echo "    ${svc}-service: 镜像 $REGISTRY/$REPO/${svc}-service:${svc}-service-$TAG"
 done

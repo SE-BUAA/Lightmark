@@ -7,9 +7,10 @@
 # 阶段与门禁（任何一步失败，后续部署立即停止，本 Run 即失败记录）：
 #   ① test-msa          取代码 → mvn 全模块单元/集成测试（失败即停，不发布镜像）
 #   ② build-push-images ① 通过后：matrix 构建 4 个服务镜像并推送 GHCR
-#   ③ deploy            SSH 到服务器，scripts/deploy-msa-k8s.sh 一键部署
-#                        （含数据库拆分、4 服务 + MSA Ingress、健康检查）
-#   ④ health-check      公网入口验证（TLS + 域名 + 前缀路由）
+#   ②' build-frontend   构建前端 SPA 镜像并推送 GHCR（与 ② 并行）
+#   ③ deploy            ② ②' 全部通过后：SSH 到服务器，scripts/deploy-msa-k8s.sh 一键部署
+#                        （含数据库拆分、4 服务 + 前端 + MSA Ingress、健康检查）
+#   ④ health-check      公网入口验证（TLS + 域名 + 前缀路由 + 前端首页）
 #
 # 镜像版本号：<svc>-service-1.0.<run_number>（如 user-service-1.0.12），
 # 另附 sha-<commit> 标签，不使用 latest 作为部署依据。
@@ -111,11 +112,63 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ---------------------------------------------------------------
-  # ③ 一键部署到服务器 Kubernetes（仅当 ② 通过）
+  # ②' 构建并推送前端镜像（与 ② 并行；dist 在原生环境构建，产物平台无关）
+  # ---------------------------------------------------------------
+  build-frontend:
+    name: ②' 构建并推送前端镜像 1.0.${{ github.run_number }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: 取代码
+        uses: actions/checkout@v5
+      - name: 安装 Node.js 20
+        uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: 安装依赖
+        working-directory: frontend
+        run: npm ci
+      - name: 编译
+        working-directory: frontend
+        run: npm run build
+      - name: 准备镜像构建上下文
+        run: |
+          mkdir -p imgctx/frontend
+          cp -r frontend/dist imgctx/frontend/
+          cp deploy/nginx.spa.conf imgctx/frontend/nginx.spa.conf
+          [ -d imgctx/frontend/dist ] || { echo "::error::前端 dist 未生成"; exit 1; }
+          ls -lh imgctx/frontend/dist | head -5
+      - name: 准备 QEMU（多架构构建模拟）
+        uses: docker/setup-qemu-action@v3
+      - name: 准备 Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: 登录 GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: 构建并推送前端镜像（amd64 + arm64）
+        uses: docker/build-push-action@v6
+        with:
+          context: imgctx/frontend
+          file: frontend/Dockerfile.runtime
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ghcr.io/${{ github.repository }}/frontend:frontend-${{ env.IMAGE_VERSION }}
+            ghcr.io/${{ github.repository }}/frontend:sha-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ---------------------------------------------------------------
+  # ③ 一键部署到服务器 Kubernetes（仅当 ② ②' 全部通过）
   # ---------------------------------------------------------------
   deploy:
     name: ③ 部署 MSA 到 Kubernetes
-    needs: build-push-images
+    needs: [build-push-images, build-frontend]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -200,4 +253,8 @@ jobs:
           curl -k -fsS --max-time 20 --resolve "$HOST:443:$SERVER_HOST" "https://$HOST/api/health" | grep -q '"UP"'
           # 用户域公开接口（图形验证码）经前缀路由可达
           curl -k -fsS --max-time 20 --resolve "$HOST:443:$SERVER_HOST" -o /dev/null "https://$HOST/api/auth/captcha"
-          echo "MSA 入口 https://$HOST 可访问（/api/health UP + /api/auth/captcha 路由正常）✓"
+          # 前端首页（Vue 挂载点）经兜底路由可达
+          curl -k -fsS --max-time 20 --resolve "$HOST:443:$SERVER_HOST" -o /tmp/msa-index.html "https://$HOST/"
+          grep -q 'id="app"' /tmp/msa-index.html
+          rm -f /tmp/msa-index.html
+          echo "MSA 入口 https://$HOST 可访问（/api/health UP + /api/auth/captcha 路由正常 + 首页含 Vue 挂载点）✓"
