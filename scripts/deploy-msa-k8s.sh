@@ -122,7 +122,20 @@ trap cleanup EXIT
 log_record "STARTED" "msa_ingress=${MSA_INGRESS_HOST}"
 
 # =====================================================================
-# [1/8] 命名空间 + ghcr 拉取凭据 + TLS 证书
+# [1/8] 12306 MCP 服务（宿主机 Docker，火车票查询数据源）
+#       一键部署 ghcr.io/supikatsujikura/mcp-12306-server，端口 9000 -> 8000，
+#       项目调用地址保持 http://<本机IP>:9000/mcp，不依赖任何外部服务。
+#       服务器无 docker 时降级为警告（火车票查询不可用，其余功能不受影响）。
+# =====================================================================
+STAGE="mcp"
+if command -v docker >/dev/null 2>&1; then
+  bash "$ROOT_DIR/scripts/deploy-mcp-12306.sh" || echo "[WARN] 12306 MCP 部署失败，火车票查询将不可用"
+else
+  echo "[WARN] 服务器无 docker，跳过 12306 MCP 部署（火车票查询将不可用）"
+fi
+
+# =====================================================================
+# [2/8] 命名空间 + ghcr 拉取凭据 + TLS 证书
 # =====================================================================
 STAGE="namespace"
 $KUBECTL apply -f "$ROOT_DIR/deploy/k8s/namespace.yaml"
@@ -160,7 +173,7 @@ if [ -n "${TMP_TLS:-}" ]; then rm -rf "$TMP_TLS"; fi
 echo "[OK] lightmark-msa-tls 已更新（${MSA_INGRESS_HOST}）"
 
 # =====================================================================
-# [2/8] 确保 k8s 内 MySQL 存在（缺失时创建并等待首次初始化完成）
+# [3/8] 确保 k8s 内 MySQL 存在（缺失时创建并等待首次初始化完成）
 # =====================================================================
 STAGE="mysql"
 if ! $KUBECTL get deployment lightmark-mysql -n "$NAMESPACE" >/dev/null 2>&1; then
@@ -181,7 +194,7 @@ else
 fi
 
 # =====================================================================
-# [3/8] 数据库拆分：单体 lightmark -> 4 个 MSA schema（幂等）+ 应用账号授权
+# [4/8] 数据库拆分：单体 lightmark -> 4 个 MSA schema（幂等）+ 应用账号授权
 # =====================================================================
 STAGE="db-split"
 mysql_pod_name() {
@@ -190,7 +203,7 @@ mysql_pod_name() {
 }
 
 if command -v mysql >/dev/null 2>&1 && command -v mysqldump >/dev/null 2>&1; then
-  echo "[3/8] 宿主机有 mysql 客户端：端口转发后执行拆分（产物保留在 $DEPLOY_DIR/artifacts/db-split）"
+  echo "[4/8] 宿主机有 mysql 客户端：端口转发后执行拆分（产物保留在 $DEPLOY_DIR/artifacts/db-split）"
   $KUBECTL port-forward -n "$NAMESPACE" service/mysql 3307:3306 >"$RENDER_DIR/mysql-pf.log" 2>&1 &
   PF_PID=$!
   DB_READY=0
@@ -210,7 +223,7 @@ if command -v mysql >/dev/null 2>&1 && command -v mysqldump >/dev/null 2>&1; the
   PF_PID=""
   echo "[OK] 拆分与授权完成（目标 schema: lightmark_user/product/order/content）"
 else
-  echo "[3/8] 宿主机无 mysql 客户端：改用 MySQL Pod 内执行拆分（幂等）"
+  echo "[4/8] 宿主机无 mysql 客户端：改用 MySQL Pod 内执行拆分（幂等）"
   POD="$(mysql_pod_name)"
   [ -n "$POD" ] || { echo "[FATAL] 找不到 lightmark-mysql Pod" >&2; exit 1; }
   $KUBECTL cp "$ROOT_DIR/scripts/db/split-mysql.sh" "$POD:/tmp/split-mysql.sh" -n "$NAMESPACE"
@@ -223,7 +236,7 @@ else
 fi
 
 # =====================================================================
-# [4/8] 生成 4 个服务的 Secret（含 <SVC>_DB_* 解析与跨服务地址）
+# [5/8] 生成 4 个服务的 Secret（含 <SVC>_DB_* 解析与跨服务地址）
 # =====================================================================
 STAGE="secrets"
 resolve_opt() { # $1=原始值（可为空） $2=回退值
@@ -269,7 +282,7 @@ for svc in "${SERVICES[@]}"; do
 done
 
 # =====================================================================
-# [5/8] 渲染并应用 4 个服务 + 前端 + MSA Ingress
+# [6/8] 渲染并应用 4 个服务 + 前端 + MSA Ingress
 # =====================================================================
 STAGE="apply"
 for svc in "${SERVICES[@]}"; do
@@ -294,7 +307,7 @@ $KUBECTL apply -f "$RENDER_DIR/msa-ingress.yaml"
 echo "[OK] MSA Ingress 已应用（host=${MSA_INGRESS_HOST}）"
 
 # =====================================================================
-# [6/8] 等待全部 Deployment 就绪
+# [7/8] 等待全部 Deployment 就绪
 # =====================================================================
 STAGE="rollout"
 for svc in "${SERVICES[@]}"; do
@@ -303,7 +316,7 @@ done
 $KUBECTL rollout status "deployment/msa-frontend" -n "$NAMESPACE" --timeout=180s
 
 # =====================================================================
-# [7/8] 逐服务端口转发健康检查（user 额外检查 ready/version）
+# [8/8] 逐服务端口转发健康检查（user 额外检查 ready/version）
 # =====================================================================
 STAGE="healthcheck"
 if ! command -v curl >/dev/null 2>&1; then

@@ -1,4 +1,4 @@
-﻿# =====================================================================
+# =====================================================================
 # Lightmark MSA 本地一键运行（无需 Kubernetes，Docker 容器即可）
 #
 # 用法：
@@ -61,6 +61,8 @@ services:
       JWT_SECRET: ${JWT_SECRET:-local-msa-dev-secret-0123456789abcdef}
       JWT_ISSUER: ${JWT_ISSUER:-lightmark}
       JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-120}
+      # 火车票查询指向本地 MCP 容器（compose 网络内服务名）
+      TRAIN_MCP_URL: http://mcp-12306:8000/mcp
 
   order-service:
     build:
@@ -101,6 +103,21 @@ services:
       JWT_ISSUER: ${JWT_ISSUER:-lightmark}
       JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-120}
       LIGHTMARK_SERVICES_USER_URL: http://user-service:8081
+
+  # 12306 MCP 服务（火车票查询数据源）：一键拉镜像运行，本地自给自足
+  # 端口映射 9000(宿主) -> 8000(容器)，与项目默认调用地址 http://<host>:9000/mcp 一致
+  mcp-12306:
+    image: ghcr.io/supikatsujikura/mcp-12306-server:latest
+    container_name: lightmark-msa-mcp12306
+    ports:
+      - "${MCP_PORT:-9000}:8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   # 前端 SPA：静态资源 + /api 反向代理
   # FRONTEND_API_MODE=local（默认）：/api 按前缀路由到本地 4 个微服务（nginx.msa.local.template）

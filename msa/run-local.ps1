@@ -53,6 +53,8 @@ Resolve-Var "FRONTEND_API_MODE" "local" | Out-Null
 Resolve-Var "MSA_API_HOST" "msa.lightmark.ortus.top" | Out-Null
 Resolve-Var "MSA_API_HOST_IP" "150.230.223.11" | Out-Null
 Resolve-Var "FRONTEND_PORT" "8080" | Out-Null
+# 12306 MCP 服务（火车票查询数据源）
+Resolve-Var "MCP_PORT" "9000" | Out-Null
 
 $schemaMap = @{
     "USER"    = "lightmark_user"
@@ -165,6 +167,26 @@ else {
     $allUp = $false
 }
 
+# 12306 MCP 服务（火车票查询数据源，健康检查 /health）
+$mcpPort = [Environment]::GetEnvironmentVariable("MCP_PORT")
+$mcpUp = $false
+for ($i = 0; $i -lt 24; $i++) {
+    try {
+        Invoke-WebRequest -UseBasicParsing -TimeoutSec 3 "http://127.0.0.1:${mcpPort}/health" | Out-Null
+        $mcpUp = $true; break
+    }
+    catch { }
+    Start-Sleep -Seconds 5
+}
+if ($mcpUp) {
+    Write-Host "[OK] mcp-12306  http://127.0.0.1:${mcpPort}/mcp -> 火车票查询数据源就绪"
+}
+else {
+    Write-Host "[FAIL] mcp-12306 未就绪（火车票查询将不可用）"
+    Write-Host "       查看日志：docker compose -f docker-compose.local.yml logs mcp-12306"
+    $allUp = $false
+}
+
 if ($allUp) {
     Write-Host ""
     Write-Host "=========================================================="
@@ -173,6 +195,7 @@ if ($allUp) {
     Write-Host "   product-service  http://127.0.0.1:8082/api/health"
     Write-Host "   order-service    http://127.0.0.1:8083/api/health"
     Write-Host "   content-service  http://127.0.0.1:8084/api/health"
+    Write-Host "   mcp-12306        http://127.0.0.1:${mcpPort}/mcp  (12306 火车票数据源)"
     Write-Host "   frontend         http://127.0.0.1:${frontendPort}/  $frontendNote"
     Write-Host ""
     Write-Host " 停止：docker compose -f docker-compose.local.yml down"

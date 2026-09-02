@@ -42,6 +42,8 @@ export FRONTEND_API_MODE="${FRONTEND_API_MODE:-local}"
 export MSA_API_HOST="${MSA_API_HOST:-msa.lightmark.ortus.top}"
 export MSA_API_HOST_IP="${MSA_API_HOST_IP:-150.230.223.11}"
 export FRONTEND_PORT="${FRONTEND_PORT:-8080}"
+# 12306 MCP 服务（火车票查询数据源）
+export MCP_PORT="${MCP_PORT:-9000}"
 
 resolve() { # $1=目标变量名 $2=默认值
   local v="${!1:-}"
@@ -148,6 +150,22 @@ else
   ALL_UP=0
 fi
 
+# 12306 MCP 服务（火车票查询数据源，健康检查 /health）
+MCP_UP=0
+for _ in $(seq 1 24); do
+  if curl -fsS --max-time 3 "http://127.0.0.1:${MCP_PORT}/health" >/dev/null 2>&1; then
+    MCP_UP=1; break
+  fi
+  sleep 5
+done
+if [ "$MCP_UP" = 1 ]; then
+  echo "[OK] mcp-12306  http://127.0.0.1:${MCP_PORT}/mcp -> 火车票查询数据源就绪"
+else
+  echo "[FAIL] mcp-12306 未就绪（火车票查询将不可用）"
+  echo "       查看日志：docker compose -f docker-compose.local.yml logs mcp-12306"
+  ALL_UP=0
+fi
+
 if [ "$ALL_UP" = 1 ]; then
   echo ""
   echo "=========================================================="
@@ -156,6 +174,7 @@ if [ "$ALL_UP" = 1 ]; then
   echo "   product-service  http://127.0.0.1:8082/api/health"
   echo "   order-service    http://127.0.0.1:8083/api/health"
   echo "   content-service  http://127.0.0.1:8084/api/health"
+  echo "   mcp-12306        http://127.0.0.1:${MCP_PORT}/mcp  (12306 火车票数据源)"
   echo "   frontend         http://127.0.0.1:${FRONTEND_PORT}/  ${FRONTEND_NOTE}"
   echo ""
   echo " 停止：docker compose -f docker-compose.local.yml down"
