@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="1683" viewBox="0 0 2000 1683">
+<rect width="100%" height="100%" fill="#e7e7e7"/>
+<style>text{font-family:"Microsoft YaHei","SimHei",Arial,sans-serif;}</style>
+<text x="80" y="50" font-size="30" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">系统顺序图</text>
+<text x="80" y="98" font-size="26" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">社区互动与智能问答</text>
+<rect x="95.0" y="180" width="190" height="72" fill="#d5e2f3" stroke="#9a9a9a" stroke-width="2"/>
+<text x="190.0" y="201.5" font-size="22" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">用户</text>
+<rect x="419.0" y="180" width="190" height="72" fill="#d5e2f3" stroke="#9a9a9a" stroke-width="2"/>
+<text x="514.0" y="201.5" font-size="22" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">前端社区页面</text>
+<rect x="743.0" y="180" width="190" height="72" fill="#d5e2f3" stroke="#9a9a9a" stroke-width="2"/>
+<text x="838.0" y="201.5" font-size="22" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">社区服务</text>
+<rect x="1067.0" y="180" width="190" height="72" fill="#d5e2f3" stroke="#9a9a9a" stroke-width="2"/>
+<text x="1162.0" y="201.5" font-size="22" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">AI服务</text>
+<rect x="1391.0" y="180" width="190" height="72" fill="#d5e2f3" stroke="#9a9a9a" stroke-width="2"/>
+<text x="1486.0" y="201.5" font-size="22" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">数据库</text>
+<rect x="1715.0" y="180" width="190" height="72" fill="#d5e2f3" stroke="#9a9a9a" stroke-width="2"/>
+<text x="1810.0" y="201.5" font-size="22" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">通知服务</text>
+<line x1="190.0" y1="252" x2="190.0" y2="1608" stroke="#9a9a9a" stroke-width="1" stroke-dasharray="6 8"/>
+<rect x="182.0" y="297" width="16" height="1315" fill="#d9e5f4" stroke="#555555" stroke-width="1"/>
+<line x1="514.0" y1="252" x2="514.0" y2="1608" stroke="#9a9a9a" stroke-width="1" stroke-dasharray="6 8"/>
+<rect x="506.0" y="297" width="16" height="1315" fill="#d9e5f4" stroke="#555555" stroke-width="1"/>
+<line x1="838.0" y1="252" x2="838.0" y2="1608" stroke="#9a9a9a" stroke-width="1" stroke-dasharray="6 8"/>
+<rect x="830.0" y="297" width="16" height="1315" fill="#d9e5f4" stroke="#555555" stroke-width="1"/>
+<line x1="1162.0" y1="252" x2="1162.0" y2="1608" stroke="#9a9a9a" stroke-width="1" stroke-dasharray="6 8"/>
+<rect x="1154.0" y="297" width="16" height="1315" fill="#d9e5f4" stroke="#555555" stroke-width="1"/>
+<line x1="1486.0" y1="252" x2="1486.0" y2="1608" stroke="#9a9a9a" stroke-width="1" stroke-dasharray="6 8"/>
+<rect x="1478.0" y="297" width="16" height="1315" fill="#d9e5f4" stroke="#555555" stroke-width="1"/>
+<line x1="1810.0" y1="252" x2="1810.0" y2="1608" stroke="#9a9a9a" stroke-width="1" stroke-dasharray="6 8"/>
+<rect x="1802.0" y="297" width="16" height="1315" fill="#d9e5f4" stroke="#555555" stroke-width="1"/>
+<rect x="688.0" y="1194" width="1217.0" height="354" fill="none" stroke="#f4b35f" stroke-width="2"/>
+<polygon points="688.0,1194 808.0,1194 778.0,1240 688.0,1240" fill="#e7e7e7" stroke="#f4b35f" stroke-width="2"/>
+<text x="724.0" y="1208" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">alt</text>
+<line x1="688.0" y1="1449" x2="1905.0" y2="1449" stroke="#f4b35f" stroke-width="2" stroke-dasharray="10 8"/>
+<text x="722.0" y="1222" font-size="20" fill="#5a4a33" text-anchor="start" dominant-baseline="text-before-edge">[AI可回答]</text>
+<text x="722.0" y="1476" font-size="20" fill="#5a4a33" text-anchor="start" dominant-baseline="text-before-edge">[AI不可回答]</text>
+<line x1="203.0" y1="315" x2="501.0" y2="315" stroke="#222222" stroke-width="2"/>
+<polygon points="501.0,315 488.38643584936614,321.0743723476458 488.38643584936614,308.9256276523542" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="352.0" y="261" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">浏览游记 / 问答</text>
+<rect x="281.0" y="257" width="142" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="352.0" y="261" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">浏览游记 / 问答</text>
+<line x1="527.0" y1="381" x2="825.0" y2="381" stroke="#222222" stroke-width="2"/>
+<polygon points="825.0,381 812.3864358493661,387.0743723476458 812.3864358493661,374.9256276523542" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="676.0" y="327" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">查询列表</text>
+<rect x="634.0" y="323" width="84" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="676.0" y="327" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">查询列表</text>
+<line x1="851.0" y1="447" x2="1473.0" y2="447" stroke="#222222" stroke-width="2"/>
+<polygon points="1473.0,447 1460.386435849366,453.0743723476458 1460.386435849366,440.9256276523542" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="1162.0" y="393" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">查询 post / question / comment</text>
+<rect x="1012.0" y="389" width="300" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="1162.0" y="393" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">查询 post / question / comment</text>
+<line x1="1473.0" y1="513" x2="851.0" y2="513" stroke="#222222" stroke-width="2" stroke-dasharray="9 7"/>
+<polygon points="851.0,513 863.6135641506339,506.9256276523542 863.6135641506339,519.0743723476459" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="1162.0" y="459" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">返回社区内容</text>
+<rect x="1101.0" y="455" width="122" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="1162.0" y="459" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">返回社区内容</text>
+<line x1="825.0" y1="579" x2="527.0" y2="579" stroke="#222222" stroke-width="2" stroke-dasharray="9 7"/>
+<polygon points="527.0,579 539.6135641506339,572.9256276523541 539.6135641506339,585.0743723476459" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="676.0" y="525" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">展示列表</text>
+<rect x="634.0" y="521" width="84" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="676.0" y="525" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">展示列表</text>
+<line x1="203.0" y1="645" x2="501.0" y2="645" stroke="#222222" stroke-width="2"/>
+<polygon points="501.0,645 488.38643584936614,651.0743723476459 488.38643584936614,638.9256276523541" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="352.0" y="591" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">发布游记</text>
+<rect x="310.0" y="587" width="84" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="352.0" y="591" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">发布游记</text>
+<line x1="527.0" y1="711" x2="825.0" y2="711" stroke="#222222" stroke-width="2"/>
+<polygon points="825.0,711 812.3864358493661,717.0743723476459 812.3864358493661,704.9256276523541" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="676.0" y="657" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">提交标题、正文、图片</text>
+<rect x="577.0" y="653" width="198" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="676.0" y="657" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">提交标题、正文、图片</text>
+<line x1="851.0" y1="777" x2="1473.0" y2="777" stroke="#222222" stroke-width="2"/>
+<polygon points="1473.0,777 1460.386435849366,783.0743723476459 1460.386435849366,770.9256276523541" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="1162.0" y="723" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">保存 post</text>
+<rect x="1116.0" y="719" width="92" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="1162.0" y="723" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">保存 post</text>
+<line x1="203.0" y1="843" x2="501.0" y2="843" stroke="#222222" stroke-width="2"/>
+<polygon points="501.0,843 488.38643584936614,849.0743723476459 488.38643584936614,836.9256276523541" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="352.0" y="789" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">点赞 / 评论 / 收藏</text>
+<rect x="271.0" y="785" width="162" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="352.0" y="789" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">点赞 / 评论 / 收藏</text>
+<line x1="527.0" y1="909" x2="825.0" y2="909" stroke="#222222" stroke-width="2"/>
+<polygon points="825.0,909 812.3864358493661,915.0743723476459 812.3864358493661,902.9256276523541" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="676.0" y="855" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">提交互动请求</text>
+<rect x="615.0" y="851" width="122" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="676.0" y="855" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">提交互动请求</text>
+<line x1="851.0" y1="975" x2="1473.0" y2="975" stroke="#222222" stroke-width="2"/>
+<polygon points="1473.0,975 1460.386435849366,981.0743723476459 1460.386435849366,968.9256276523541" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="1162.0" y="921" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">更新 like_count / comment_count</text>
+<rect x="1004.5" y="917" width="315" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="1162.0" y="921" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">更新 like_count / comment_count</text>
+<line x1="851.0" y1="1041" x2="1797.0" y2="1041" stroke="#222222" stroke-width="2"/>
+<polygon points="1797.0,1041 1784.386435849366,1047.0743723476457 1784.386435849366,1034.9256276523543" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="1324.0" y="987" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">通知作者有新互动</text>
+<rect x="1244.0" y="983" width="160" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="1324.0" y="987" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">通知作者有新互动</text>
+<line x1="203.0" y1="1107" x2="501.0" y2="1107" stroke="#222222" stroke-width="2"/>
+<polygon points="501.0,1107 488.38643584936614,1113.0743723476457 488.38643584936614,1100.9256276523543" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="352.0" y="1053" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">发布问题</text>
+<rect x="310.0" y="1049" width="84" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="352.0" y="1053" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">发布问题</text>
+<line x1="527.0" y1="1173" x2="825.0" y2="1173" stroke="#222222" stroke-width="2"/>
+<polygon points="825.0,1173 812.3864358493661,1179.0743723476457 812.3864358493661,1166.9256276523543" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="676.0" y="1119" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">提交 question</text>
+<rect x="610.0" y="1115" width="132" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="676.0" y="1119" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">提交 question</text>
+<line x1="851.0" y1="1239" x2="1149.0" y2="1239" stroke="#222222" stroke-width="2"/>
+<polygon points="1149.0,1239 1136.386435849366,1245.0743723476457 1136.386435849366,1232.9256276523543" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="1000.0" y="1185" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">尝试智能问答</text>
+<rect x="939.0" y="1181" width="122" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="1000.0" y="1185" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">尝试智能问答</text>
+<line x1="1149.0" y1="1305" x2="851.0" y2="1305" stroke="#222222" stroke-width="2" stroke-dasharray="9 7"/>
+<polygon points="851.0,1305 863.6135641506339,1298.9256276523543 863.6135641506339,1311.0743723476457" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="1000.0" y="1251" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">返回答案</text>
+<rect x="958.0" y="1247" width="84" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="1000.0" y="1251" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">返回答案</text>
+<line x1="851.0" y1="1371" x2="1473.0" y2="1371" stroke="#222222" stroke-width="2"/>
+<polygon points="1473.0,1371 1460.386435849366,1377.0743723476457 1460.386435849366,1364.9256276523543" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="1162.0" y="1317" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">保存 answer</text>
+<rect x="1103.0" y="1313" width="118" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="1162.0" y="1317" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">保存 answer</text>
+<line x1="851.0" y1="1437" x2="1797.0" y2="1437" stroke="#222222" stroke-width="2"/>
+<polygon points="1797.0,1437 1784.386435849366,1443.0743723476457 1784.386435849366,1430.9256276523543" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="1324.0" y="1383" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">通知提问者</text>
+<rect x="1272.5" y="1379" width="103" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="1324.0" y="1383" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">通知提问者</text>
+<line x1="851.0" y1="1503" x2="1473.0" y2="1503" stroke="#222222" stroke-width="2" stroke-dasharray="9 7"/>
+<polygon points="1473.0,1503 1460.386435849366,1509.0743723476457 1460.386435849366,1496.9256276523543" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="1162.0" y="1449" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">问题进入待回答状态</text>
+<rect x="1072.5" y="1445" width="179" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="1162.0" y="1449" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">问题进入待回答状态</text>
+</svg>

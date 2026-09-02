@@ -1,0 +1,169 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1380" viewBox="0 0 1920 1380">
+<rect width="100%" height="100%" fill="#e7e7e7"/>
+<style>text{font-family:"Microsoft YaHei","SimHei",Arial,sans-serif;}</style>
+<text x="80" y="58" font-size="30" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">概念类图</text>
+<rect x="766" y="136" width="330" height="318" fill="#c8c8c8" stroke="none" stroke-width="0"/>
+<rect x="760" y="130" width="330" height="318" fill="#eee1cf" stroke="#777777" stroke-width="2"/>
+<rect x="760" y="130" width="330" height="56" fill="#f1dec5" stroke="#777777" stroke-width="2"/>
+<line x1="760" y1="186" x2="1090" y2="186" stroke="#333333" stroke-width="2"/>
+<text x="925.0" y="142.5" font-size="23" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">User</text>
+<text x="782" y="206" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ id</text>
+<text x="782" y="240" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ phone</text>
+<text x="782" y="274" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ email</text>
+<text x="782" y="308" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ nickname</text>
+<text x="782" y="342" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ avatar</text>
+<text x="782" y="376" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ points</text>
+<text x="782" y="410" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ status</text>
+<rect x="146" y="166" width="390" height="386" fill="#c8c8c8" stroke="none" stroke-width="0"/>
+<rect x="140" y="160" width="390" height="386" fill="#eee1cf" stroke="#777777" stroke-width="2"/>
+<rect x="140" y="160" width="390" height="56" fill="#f1dec5" stroke="#777777" stroke-width="2"/>
+<line x1="140" y1="216" x2="530" y2="216" stroke="#333333" stroke-width="2"/>
+<text x="335.0" y="172.5" font-size="23" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">TravelPlan</text>
+<text x="162" y="236" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ id</text>
+<text x="162" y="270" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ user_id</text>
+<text x="162" y="304" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ title</text>
+<text x="162" y="338" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ destination</text>
+<text x="162" y="372" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ start_date</text>
+<text x="162" y="406" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ end_date</text>
+<text x="162" y="440" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ plan_data</text>
+<text x="162" y="474" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ is_public</text>
+<text x="162" y="508" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ share_token</text>
+<rect x="146" y="631" width="430" height="386" fill="#c8c8c8" stroke="none" stroke-width="0"/>
+<rect x="140" y="625" width="430" height="386" fill="#eee1cf" stroke="#777777" stroke-width="2"/>
+<rect x="140" y="625" width="430" height="56" fill="#f1dec5" stroke="#777777" stroke-width="2"/>
+<line x1="140" y1="681" x2="570" y2="681" stroke="#333333" stroke-width="2"/>
+<text x="355.0" y="637.5" font-size="23" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">TravelPlanItem</text>
+<text x="162" y="701" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ id</text>
+<text x="162" y="735" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ plan_id</text>
+<text x="162" y="769" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ day_no</text>
+<text x="162" y="803" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ start_time</text>
+<text x="162" y="837" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ end_time</text>
+<text x="162" y="871" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ item_type</text>
+<text x="162" y="905" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ item_name</text>
+<text x="162" y="939" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ location</text>
+<text x="162" y="973" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ sort_order</text>
+<rect x="1236" y="156" width="410" height="318" fill="#c8c8c8" stroke="none" stroke-width="0"/>
+<rect x="1230" y="150" width="410" height="318" fill="#eee1cf" stroke="#777777" stroke-width="2"/>
+<rect x="1230" y="150" width="410" height="56" fill="#f1dec5" stroke="#777777" stroke-width="2"/>
+<line x1="1230" y1="206" x2="1640" y2="206" stroke="#333333" stroke-width="2"/>
+<text x="1435.0" y="162.5" font-size="23" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">Question</text>
+<text x="1252" y="226" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ id</text>
+<text x="1252" y="260" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ user_id</text>
+<text x="1252" y="294" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ title</text>
+<text x="1252" y="328" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ content</text>
+<text x="1252" y="362" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ answer</text>
+<text x="1252" y="396" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ answer_user_id</text>
+<text x="1252" y="430" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ status</text>
+<rect x="716" y="561" width="370" height="352" fill="#c8c8c8" stroke="none" stroke-width="0"/>
+<rect x="710" y="555" width="370" height="352" fill="#eee1cf" stroke="#777777" stroke-width="2"/>
+<rect x="710" y="555" width="370" height="56" fill="#f1dec5" stroke="#777777" stroke-width="2"/>
+<line x1="710" y1="611" x2="1080" y2="611" stroke="#333333" stroke-width="2"/>
+<text x="895.0" y="567.5" font-size="23" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">Post</text>
+<text x="732" y="631" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ id</text>
+<text x="732" y="665" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ user_id</text>
+<text x="732" y="699" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ title</text>
+<text x="732" y="733" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ content</text>
+<text x="732" y="767" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ images</text>
+<text x="732" y="801" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ likes</text>
+<text x="732" y="835" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ comments_count</text>
+<text x="732" y="869" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ status</text>
+<rect x="1236" y="561" width="420" height="318" fill="#c8c8c8" stroke="none" stroke-width="0"/>
+<rect x="1230" y="555" width="420" height="318" fill="#eee1cf" stroke="#777777" stroke-width="2"/>
+<rect x="1230" y="555" width="420" height="56" fill="#f1dec5" stroke="#777777" stroke-width="2"/>
+<line x1="1230" y1="611" x2="1650" y2="611" stroke="#333333" stroke-width="2"/>
+<text x="1440.0" y="567.5" font-size="23" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">Comment</text>
+<text x="1252" y="631" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ id</text>
+<text x="1252" y="665" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ target_type</text>
+<text x="1252" y="699" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ target_id</text>
+<text x="1252" y="733" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ user_id</text>
+<text x="1252" y="767" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ parent_id</text>
+<text x="1252" y="801" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ content</text>
+<text x="1252" y="835" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ likes</text>
+<rect x="731" y="971" width="350" height="250" fill="#c8c8c8" stroke="none" stroke-width="0"/>
+<rect x="725" y="965" width="350" height="250" fill="#eee1cf" stroke="#777777" stroke-width="2"/>
+<rect x="725" y="965" width="350" height="56" fill="#f1dec5" stroke="#777777" stroke-width="2"/>
+<line x1="725" y1="1021" x2="1075" y2="1021" stroke="#333333" stroke-width="2"/>
+<text x="900.0" y="977.5" font-size="23" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">Order</text>
+<text x="747" y="1041" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ id</text>
+<text x="747" y="1075" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ order_no</text>
+<text x="747" y="1109" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ user_id</text>
+<text x="747" y="1143" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ order_type</text>
+<text x="747" y="1177" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ status</text>
+<rect x="1236" y="936" width="430" height="352" fill="#c8c8c8" stroke="none" stroke-width="0"/>
+<rect x="1230" y="930" width="430" height="352" fill="#eee1cf" stroke="#777777" stroke-width="2"/>
+<rect x="1230" y="930" width="430" height="56" fill="#f1dec5" stroke="#777777" stroke-width="2"/>
+<line x1="1230" y1="986" x2="1660" y2="986" stroke="#333333" stroke-width="2"/>
+<text x="1445.0" y="942.5" font-size="23" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">Review</text>
+<text x="1252" y="1006" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ id</text>
+<text x="1252" y="1040" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ order_id</text>
+<text x="1252" y="1074" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ user_id</text>
+<text x="1252" y="1108" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ rating</text>
+<text x="1252" y="1142" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ content</text>
+<text x="1252" y="1176" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ images</text>
+<text x="1252" y="1210" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ sentiment_score</text>
+<text x="1252" y="1244" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">+ reply_content</text>
+<line x1="760" y1="250" x2="530" y2="280" stroke="#333333" stroke-width="2"/>
+<polygon points="530,280 541.721961035124,272.34522178694675 543.2932697614607,284.39192202219436" fill="#e7e7e7" stroke="#e7e7e7" stroke-width="1"/>
+<line x1="529" y1="279" x2="531" y2="281" stroke="#333333" stroke-width="1"/>
+<text x="645.0" y="241.0" font-size="18" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">creates</text>
+<text x="746.0" y="218.0" font-size="18" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">1</text>
+<text x="544.0" y="248.0" font-size="18" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">*</text>
+<line x1="335.0" y1="546" x2="355.0" y2="625" stroke="#333333" stroke-width="2"/>
+<polygon points="355.0,625 346.01575951818216,614.2629881733852 357.7929515558192,611.2814205689201" fill="#e7e7e7" stroke="#e7e7e7" stroke-width="1"/>
+<line x1="354.0" y1="624" x2="356.0" y2="626" stroke="#333333" stroke-width="1"/>
+<text x="390.0" y="573.5" font-size="18" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">contains</text>
+<text x="349.0" y="514.0" font-size="18" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">1</text>
+<text x="341.0" y="593.0" font-size="18" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">*</text>
+<line x1="925.0" y1="448" x2="895.0" y2="555" stroke="#333333" stroke-width="2"/>
+<polygon points="895.0,555 892.55637039597,541.2149111588533 904.2540383069944,544.4946311339069" fill="#e7e7e7" stroke="#e7e7e7" stroke-width="1"/>
+<line x1="894.0" y1="554" x2="896.0" y2="556" stroke="#333333" stroke-width="1"/>
+<text x="980.0" y="473.5" font-size="18" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">publishes</text>
+<text x="911.0" y="416.0" font-size="18" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">1</text>
+<text x="909.0" y="523.0" font-size="18" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">*</text>
+<line x1="1080" y1="705" x2="1230" y2="705" stroke="#333333" stroke-width="2"/>
+<polygon points="1230,705 1217.386435849366,711.0743723476459 1217.386435849366,698.9256276523541" fill="#e7e7e7" stroke="#e7e7e7" stroke-width="1"/>
+<line x1="1229" y1="704" x2="1231" y2="706" stroke="#333333" stroke-width="1"/>
+<text x="1155.0" y="681.0" font-size="18" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">has</text>
+<text x="1094.0" y="673.0" font-size="18" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">1</text>
+<text x="1216.0" y="673.0" font-size="18" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">*</text>
+<line x1="1090" y1="225" x2="1230" y2="245" stroke="#333333" stroke-width="2"/>
+<polygon points="1230,245 1216.6541625801228,249.2294944806924 1218.3722545315118,237.20285082096967" fill="#e7e7e7" stroke="#e7e7e7" stroke-width="1"/>
+<line x1="1229" y1="244" x2="1231" y2="246" stroke="#333333" stroke-width="1"/>
+<text x="1160.0" y="211.0" font-size="18" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">asks</text>
+<text x="1104.0" y="193.0" font-size="18" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">1</text>
+<text x="1216.0" y="213.0" font-size="18" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">*</text>
+<line x1="1090" y1="380" x2="1125" y2="380" stroke="#333333" stroke-width="2"/>
+<line x1="1125" y1="380" x2="1125" y2="620" stroke="#333333" stroke-width="2"/>
+<line x1="1125" y1="620" x2="1230" y2="620" stroke="#333333" stroke-width="2"/>
+<polyline points="1090,380 1125,380 1125,620 1230,620" fill="none" stroke="#333333" stroke-width="2"/>
+<polygon points="1230,620 1217.386435849366,626.0743723476459 1217.386435849366,613.9256276523541" fill="#e7e7e7" stroke="#e7e7e7" stroke-width="1"/>
+<line x1="1229" y1="619" x2="1231" y2="621" stroke="#333333" stroke-width="1"/>
+<text x="1130.0" y="444.0" font-size="18" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">writes</text>
+<text x="1102.0" y="350.0" font-size="18" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">1</text>
+<text x="1214.0" y="590.0" font-size="18" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">*</text>
+<line x1="1090" y1="380" x2="1160" y2="380" stroke="#333333" stroke-width="2"/>
+<line x1="1160" y1="380" x2="1160" y2="510" stroke="#333333" stroke-width="2"/>
+<line x1="1160" y1="510" x2="1710" y2="510" stroke="#333333" stroke-width="2"/>
+<line x1="1710" y1="510" x2="1710" y2="1040" stroke="#333333" stroke-width="2"/>
+<line x1="1710" y1="1040" x2="1660" y2="1040" stroke="#333333" stroke-width="2"/>
+<polyline points="1090,380 1160,380 1160,510 1710,510 1710,1040 1660,1040" fill="none" stroke="#333333" stroke-width="2"/>
+<polygon points="1660,1040 1672.613564150634,1033.9256276523543 1672.613564150634,1046.0743723476457" fill="#e7e7e7" stroke="#e7e7e7" stroke-width="1"/>
+<line x1="1659" y1="1039" x2="1661" y2="1041" stroke="#333333" stroke-width="1"/>
+<text x="1425.0" y="470.0" font-size="18" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">writes</text>
+<text x="1102.0" y="350.0" font-size="18" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">1</text>
+<text x="1644.0" y="1010.0" font-size="18" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">*</text>
+<line x1="1075" y1="1060" x2="1230" y2="1025" stroke="#333333" stroke-width="2"/>
+<polygon points="1230,1025 1219.0341588919714,1033.7034664814355 1216.3582657985494,1021.8530827819953" fill="#e7e7e7" stroke="#e7e7e7" stroke-width="1"/>
+<line x1="1229" y1="1024" x2="1231" y2="1026" stroke="#333333" stroke-width="1"/>
+<text x="1152.5" y="1018.5" font-size="18" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">has</text>
+<text x="1089.0" y="1028.0" font-size="18" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">1</text>
+<text x="1216.0" y="993.0" font-size="18" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">0..1</text>
+<line x1="1650" y1="745" x2="1740" y2="745" stroke="#333333" stroke-width="2"/>
+<line x1="1740" y1="745" x2="1740" y2="850" stroke="#333333" stroke-width="2"/>
+<line x1="1740" y1="850" x2="1650" y2="850" stroke="#333333" stroke-width="2"/>
+<polyline points="1650,745 1740,745 1740,850 1650,850" fill="none" stroke="#333333" stroke-width="2"/>
+<polygon points="1650,850 1662.613564150634,843.9256276523541 1662.613564150634,856.0743723476459" fill="#e7e7e7" stroke="#e7e7e7" stroke-width="1"/>
+<text x="1762" y="787.0" font-size="18" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">replies</text>
+<text x="1674" y="729" font-size="18" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">0..1</text>
+<text x="1658" y="863" font-size="18" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">*</text>
+</svg>

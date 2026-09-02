@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="1551" viewBox="0 0 2000 1551">
+<rect width="100%" height="100%" fill="#e7e7e7"/>
+<style>text{font-family:"Microsoft YaHei","SimHei",Arial,sans-serif;}</style>
+<text x="80" y="50" font-size="30" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">系统顺序图</text>
+<text x="80" y="98" font-size="26" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">智能行程生成与分享</text>
+<rect x="95.0" y="180" width="190" height="72" fill="#d5e2f3" stroke="#9a9a9a" stroke-width="2"/>
+<text x="190.0" y="201.5" font-size="22" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">用户</text>
+<rect x="419.0" y="180" width="190" height="72" fill="#d5e2f3" stroke="#9a9a9a" stroke-width="2"/>
+<text x="514.0" y="201.5" font-size="22" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">前端行程页面</text>
+<rect x="743.0" y="180" width="190" height="72" fill="#d5e2f3" stroke="#9a9a9a" stroke-width="2"/>
+<text x="838.0" y="201.5" font-size="22" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">行程服务</text>
+<rect x="1067.0" y="180" width="190" height="72" fill="#d5e2f3" stroke="#9a9a9a" stroke-width="2"/>
+<text x="1162.0" y="201.5" font-size="22" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">AI服务</text>
+<rect x="1391.0" y="180" width="190" height="72" fill="#d5e2f3" stroke="#9a9a9a" stroke-width="2"/>
+<text x="1486.0" y="201.5" font-size="22" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">数据库</text>
+<rect x="1715.0" y="180" width="190" height="72" fill="#d5e2f3" stroke="#9a9a9a" stroke-width="2"/>
+<text x="1810.0" y="201.5" font-size="22" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">通知服务</text>
+<line x1="190.0" y1="252" x2="190.0" y2="1476" stroke="#9a9a9a" stroke-width="1" stroke-dasharray="6 8"/>
+<rect x="182.0" y="297" width="16" height="1183" fill="#d9e5f4" stroke="#555555" stroke-width="1"/>
+<line x1="514.0" y1="252" x2="514.0" y2="1476" stroke="#9a9a9a" stroke-width="1" stroke-dasharray="6 8"/>
+<rect x="506.0" y="297" width="16" height="1183" fill="#d9e5f4" stroke="#555555" stroke-width="1"/>
+<line x1="838.0" y1="252" x2="838.0" y2="1476" stroke="#9a9a9a" stroke-width="1" stroke-dasharray="6 8"/>
+<rect x="830.0" y="297" width="16" height="1183" fill="#d9e5f4" stroke="#555555" stroke-width="1"/>
+<line x1="1162.0" y1="252" x2="1162.0" y2="1476" stroke="#9a9a9a" stroke-width="1" stroke-dasharray="6 8"/>
+<rect x="1154.0" y="297" width="16" height="1183" fill="#d9e5f4" stroke="#555555" stroke-width="1"/>
+<line x1="1486.0" y1="252" x2="1486.0" y2="1476" stroke="#9a9a9a" stroke-width="1" stroke-dasharray="6 8"/>
+<rect x="1478.0" y="297" width="16" height="1183" fill="#d9e5f4" stroke="#555555" stroke-width="1"/>
+<line x1="1810.0" y1="252" x2="1810.0" y2="1476" stroke="#9a9a9a" stroke-width="1" stroke-dasharray="6 8"/>
+<rect x="1802.0" y="297" width="16" height="1183" fill="#d9e5f4" stroke="#555555" stroke-width="1"/>
+<rect x="688.0" y="402" width="624.0" height="207" fill="none" stroke="#f4b35f" stroke-width="2"/>
+<polygon points="688.0,402 808.0,402 778.0,448 688.0,448" fill="#e7e7e7" stroke="#f4b35f" stroke-width="2"/>
+<text x="724.0" y="416" font-size="20" fill="#2d333b" text-anchor="start" dominant-baseline="text-before-edge">alt</text>
+<line x1="688.0" y1="556" x2="1312.0" y2="556" stroke="#f4b35f" stroke-width="2" stroke-dasharray="10 8"/>
+<text x="722.0" y="430" font-size="20" fill="#5a4a33" text-anchor="start" dominant-baseline="text-before-edge">[AI生成成功]</text>
+<text x="722.0" y="582" font-size="20" fill="#5a4a33" text-anchor="start" dominant-baseline="text-before-edge">[AI服务失败]</text>
+<line x1="203.0" y1="315" x2="501.0" y2="315" stroke="#222222" stroke-width="2"/>
+<polygon points="501.0,315 488.38643584936614,321.0743723476458 488.38643584936614,308.9256276523542" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="352.0" y="261" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">填写目的地、天数、预算、偏好</text>
+<rect x="215.0" y="257" width="274" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="352.0" y="261" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">填写目的地、天数、预算、偏好</text>
+<line x1="527.0" y1="381" x2="825.0" y2="381" stroke="#222222" stroke-width="2"/>
+<polygon points="825.0,381 812.3864358493661,387.0743723476458 812.3864358493661,374.9256276523542" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="676.0" y="327" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">提交生成行程请求</text>
+<rect x="596.0" y="323" width="160" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="676.0" y="327" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">提交生成行程请求</text>
+<line x1="851.0" y1="447" x2="1149.0" y2="447" stroke="#222222" stroke-width="2"/>
+<polygon points="1149.0,447 1136.386435849366,453.0743723476458 1136.386435849366,440.9256276523542" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="1000.0" y="393" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">请求生成结构化行程</text>
+<rect x="910.5" y="389" width="179" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="1000.0" y="393" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">请求生成结构化行程</text>
+<line x1="1149.0" y1="513" x2="851.0" y2="513" stroke="#222222" stroke-width="2" stroke-dasharray="9 7"/>
+<polygon points="851.0,513 863.6135641506339,506.9256276523542 863.6135641506339,519.0743723476459" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="1000.0" y="459" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">返回每日行程草案</text>
+<rect x="920.0" y="455" width="160" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="1000.0" y="459" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">返回每日行程草案</text>
+<line x1="1149.0" y1="579" x2="851.0" y2="579" stroke="#222222" stroke-width="2" stroke-dasharray="9 7"/>
+<polygon points="851.0,579 863.6135641506339,572.9256276523541 863.6135641506339,585.0743723476459" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="1000.0" y="495" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">返回预置 Mock 行程，不阻塞主</text>
+<text x="1000.0" y="525" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">流程</text>
+<rect x="860.0" y="491" width="280" height="64" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="1000.0" y="495" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">返回预置 Mock 行程，不阻塞主</text>
+<text x="1000.0" y="525" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">流程</text>
+<line x1="851.0" y1="711" x2="1473.0" y2="711" stroke="#222222" stroke-width="2"/>
+<polygon points="1473.0,711 1460.386435849366,717.0743723476459 1460.386435849366,704.9256276523541" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="1162.0" y="657" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">保存 travel_plan / travel_plan_item</text>
+<rect x="1001.0" y="653" width="322" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="1162.0" y="657" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">保存 travel_plan / travel_plan_item</text>
+<line x1="1473.0" y1="777" x2="851.0" y2="777" stroke="#222222" stroke-width="2" stroke-dasharray="9 7"/>
+<polygon points="851.0,777 863.6135641506339,770.9256276523541 863.6135641506339,783.0743723476459" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="1162.0" y="723" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">返回保存结果</text>
+<rect x="1101.0" y="719" width="122" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="1162.0" y="723" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">返回保存结果</text>
+<line x1="825.0" y1="843" x2="527.0" y2="843" stroke="#222222" stroke-width="2" stroke-dasharray="9 7"/>
+<polygon points="527.0,843 539.6135641506339,836.9256276523541 539.6135641506339,849.0743723476459" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="676.0" y="789" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">返回行程详情</text>
+<rect x="615.0" y="785" width="122" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="676.0" y="789" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">返回行程详情</text>
+<line x1="203.0" y1="909" x2="501.0" y2="909" stroke="#222222" stroke-width="2"/>
+<polygon points="501.0,909 488.38643584936614,915.0743723476459 488.38643584936614,902.9256276523541" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="352.0" y="855" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">拖拽调整景点顺序</text>
+<rect x="272.0" y="851" width="160" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="352.0" y="855" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">拖拽调整景点顺序</text>
+<line x1="527.0" y1="975" x2="825.0" y2="975" stroke="#222222" stroke-width="2"/>
+<polygon points="825.0,975 812.3864358493661,981.0743723476459 812.3864358493661,968.9256276523541" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="676.0" y="921" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">提交修改后的行程</text>
+<rect x="596.0" y="917" width="160" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="676.0" y="921" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">提交修改后的行程</text>
+<line x1="851.0" y1="1041" x2="1473.0" y2="1041" stroke="#222222" stroke-width="2"/>
+<polygon points="1473.0,1041 1460.386435849366,1047.0743723476457 1460.386435849366,1034.9256276523543" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="1162.0" y="987" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">更新行程数据</text>
+<rect x="1101.0" y="983" width="122" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="1162.0" y="987" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">更新行程数据</text>
+<line x1="203.0" y1="1107" x2="501.0" y2="1107" stroke="#222222" stroke-width="2"/>
+<polygon points="501.0,1107 488.38643584936614,1113.0743723476457 488.38643584936614,1100.9256276523543" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="352.0" y="1053" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">分享或导出</text>
+<rect x="300.5" y="1049" width="103" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="352.0" y="1053" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">分享或导出</text>
+<line x1="527.0" y1="1173" x2="825.0" y2="1173" stroke="#222222" stroke-width="2"/>
+<polygon points="825.0,1173 812.3864358493661,1179.0743723476457 812.3864358493661,1166.9256276523543" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="676.0" y="1119" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">请求分享链接 / PDF导出</text>
+<rect x="568.0" y="1115" width="216" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="676.0" y="1119" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">请求分享链接 / PDF导出</text>
+<line x1="851.0" y1="1239" x2="1473.0" y2="1239" stroke="#222222" stroke-width="2"/>
+<polygon points="1473.0,1239 1460.386435849366,1245.0743723476457 1460.386435849366,1232.9256276523543" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="1162.0" y="1185" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">更新 share_token / 查询行程</text>
+<rect x="1032.5" y="1181" width="259" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="1162.0" y="1185" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">更新 share_token / 查询行程</text>
+<line x1="825.0" y1="1305" x2="527.0" y2="1305" stroke="#222222" stroke-width="2" stroke-dasharray="9 7"/>
+<polygon points="527.0,1305 539.6135641506339,1298.9256276523543 539.6135641506339,1311.0743723476457" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="676.0" y="1251" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">返回分享链接或文件地址</text>
+<rect x="567.5" y="1247" width="217" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="676.0" y="1251" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">返回分享链接或文件地址</text>
+<line x1="851.0" y1="1371" x2="1797.0" y2="1371" stroke="#222222" stroke-width="2"/>
+<polygon points="1797.0,1371 1784.386435849366,1377.0743723476457 1784.386435849366,1364.9256276523543" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text x="1324.0" y="1317" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">注册出发前 24 小时 / 2 小时提醒</text>
+<rect x="1180.0" y="1313" width="288" height="34" fill="#e7e7e7" stroke="none" stroke-width="0"/>
+<text x="1324.0" y="1317" font-size="19" fill="#2d333b" text-anchor="middle" dominant-baseline="text-before-edge">注册出发前 24 小时 / 2 小时提醒</text>
+</svg>

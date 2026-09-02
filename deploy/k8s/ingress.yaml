@@ -2,7 +2,8 @@
 # Ingress（k3s 内置 Traefik；如使用其他集群请改为对应 ingressClassName）
 #
 # - 域名占位符 __INGRESS_HOST__ 由 scripts/deploy-k8s.sh 渲染
-# - /api/*  → backend:8080
+# - /api/auth、/api/user、/api/admin/users、/api/admin/logs → user-service:8081
+# - 其他 /api/* → backend:8080（单体兼容路由，等待对应业务服务迁移）
 # - /*      → frontend:80（前端 history 路由由 nginx 的 try_files 处理）
 # - TLS 证书 Secret lightmark-tls 由部署脚本从服务器证书生成
 #   （无证书时自动生成自签名证书）
@@ -24,6 +25,79 @@ spec:
     - host: __INGRESS_HOST__
       http:
         paths:
+          # user-service 的用户域路由。Ingress 会优先匹配更长的路径，
+          # 因此 /api/admin/products 等仍会落到单体 backend。
+          - path: /api/auth
+            pathType: Prefix
+            backend:
+              service:
+                name: user-service
+                port:
+                  number: 8081
+          - path: /api/user
+            pathType: Prefix
+            backend:
+              service:
+                name: user-service
+                port:
+                  number: 8081
+          - path: /api/admin/users
+            pathType: Prefix
+            backend:
+              service:
+                name: user-service
+                port:
+                  number: 8081
+          - path: /api/admin/logs
+            pathType: Prefix
+            backend:
+              service:
+                name: user-service
+                port:
+                  number: 8081
+          # 内容域路由：社区、行程和 AI 请求交给 content-service。
+          - path: /api/chat
+            pathType: Prefix
+            backend:
+              service:
+                name: content-service
+                port:
+                  number: 8084
+          - path: /api/itinerary
+            pathType: Prefix
+            backend:
+              service:
+                name: content-service
+                port:
+                  number: 8084
+          - path: /api/posts
+            pathType: Prefix
+            backend:
+              service:
+                name: content-service
+                port:
+                  number: 8084
+          - path: /api/questions
+            pathType: Prefix
+            backend:
+              service:
+                name: content-service
+                port:
+                  number: 8084
+          - path: /api/community
+            pathType: Prefix
+            backend:
+              service:
+                name: content-service
+                port:
+                  number: 8084
+          - path: /api/ai
+            pathType: Prefix
+            backend:
+              service:
+                name: content-service
+                port:
+                  number: 8084
           - path: /api
             pathType: Prefix
             backend:
