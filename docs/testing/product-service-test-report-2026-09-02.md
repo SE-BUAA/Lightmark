@@ -1,12 +1,28 @@
-# B 部分 product-service 测试报告（2026-09-02）
+# product-service 测试报告
 
-## 1. 测试目标
+测试日期：2026-09-02  
+分工角色：B（产品服务）  
+当前代码版本：`a049ed4`
+
+## 1. 测试结论
+
+产品服务自动化测试全部通过，可进入真实数据库和跨服务联调阶段。
+
+| 指标 | 结果 |
+| --- | ---: |
+| product-service 测试总数 | 14 |
+| 通过 | 14 |
+| 失败 | 0 |
+| 跳过 | 0 |
+| 构建结果 | `BUILD SUCCESS` |
+
+## 2. 测试目标
 
 验证 `product-service` 在微服务拆分后的接口路由、参数绑定、响应结构、产品查询逻辑、库存适配和 JWT 内部接口保护是否符合订单系统调用契约。
 
 本轮测试不连接真实 MySQL，不修改产品数据库，也不依赖火车票 MCP 服务；数据库访问和外部服务均通过 Mock 隔离。
 
-## 2. 测试环境
+## 3. 测试环境
 
 | 项目 | 配置 |
 | --- | --- |
@@ -17,7 +33,7 @@
 | 测试日期 | 2026-09-02 |
 | 测试模块 | `lightmark-common`、`product-service` |
 
-## 3. 执行命令与结果
+## 4. 执行方式与结果
 
 在仓库根目录执行：
 
@@ -40,7 +56,7 @@ mvn -pl product-service -am test
 
 Maven reactor 同时执行了依赖模块 `lightmark-common` 的 4 个测试，结果为 4/4 通过。
 
-## 4. 测试覆盖范围
+## 5. 测试覆盖范围
 
 ### 4.1 航班产品
 
@@ -85,14 +101,14 @@ Maven reactor 同时执行了依赖模块 `lightmark-common` 的 4 个测试，�
 
 集成测试加载 `JwtConfig` 和 `ProductServiceSecurityConfig`，使用测试密钥生成 Bearer JWT，验证内部库存接口在鉴权上下文下可正常访问。测试密钥仅用于测试，不写入生产配置。
 
-## 5. 测试数据与隔离
+## 6. 测试数据与隔离
 
 - Service 测试使用 Mockito 模拟 `JdbcTemplate`、`RestClient` 和外部数据。
 - Controller 集成测试使用 `@WebMvcTest` + MockMvc，不启动真实数据库连接。
 - 产品服务内部接口使用长度不少于 32 字节的测试 JWT 密钥。
 - 每个测试不依赖执行顺序，不写入 `database/lightmark.sql`。
 
-## 6. 测试产物
+## 7. 测试产物
 
 Maven Surefire 报告目录：
 
@@ -106,7 +122,7 @@ msa/product-service/target/surefire-reports
 - `msa/product-service/src/test/java/top/ortus/lightmark/product/controller/InternalProductControllerTest.java`
 - `msa/product-service/src/test/java/top/ortus/lightmark/product/controller/ProductControllerIntegrationTest.java`
 
-## 7. 尚未覆盖的现场验收项
+## 8. 尚未覆盖的现场验收项
 
 以下内容需要在部署环境或真实依赖服务中补充验证，不能由本地 MockMvc 测试替代：
 
@@ -116,6 +132,13 @@ msa/product-service/target/surefire-reports
 4. 火车票 MCP 服务可用时的直达、中转和价格日历数据。
 5. Kubernetes 中产品服务的健康检查、Secret 注入和服务发现。
 
-## 8. 结论
+## 9. 相关提交
+
+- `328844b`：订单库存接口适配
+- `f7d6a35`：产品服务 API 集成测试
+- `97e9344`：订单调用产品服务增加 JWT
+- `a049ed4`：最新 MSA 部署配置合并
+
+## 10. 结论
 
 `product-service` 当前自动化测试全部通过，接口层和订单库存适配契约已验证。服务具备进入真实数据库和跨服务联调阶段的条件；部署验收和真实并发库存测试仍需在目标环境执行。
