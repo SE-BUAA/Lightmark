@@ -1,0 +1,133 @@
+# content-service 独立 Kubernetes 资源。
+# __IMAGE_CONTENT__ 和 __APP_VERSION__ 由 scripts/deploy-msa-k8s.sh 渲染。
+# 本清单只部署应用，不创建/初始化/修改数据库。
+apiVersion: v1
+kind: Service
+metadata:
+  name: content-service
+  namespace: lightmark
+  labels:
+    app: lightmark
+    tier: content-service
+spec:
+  type: ClusterIP
+  selector:
+    app: lightmark-content-service
+  ports:
+    - name: http
+      port: 8084
+      targetPort: 8084
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: content-service
+  namespace: lightmark
+  labels:
+    app: lightmark
+    tier: content-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lightmark-content-service
+  template:
+    metadata:
+      labels:
+        app: lightmark-content-service
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+      containers:
+        - name: content-service
+          image: __IMAGE_CONTENT__
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8084
+          env:
+            - name: CONTENT_SERVICE_PORT
+              value: "8084"
+            - name: APP_VERSION
+              value: "__APP_VERSION__"
+          envFrom:
+            - secretRef:
+                name: content-service-secrets
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 24
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: content-service
+  namespace: lightmark
+  labels:
+    app: lightmark
+    tier: content-service
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: content-service
+  minReplicas: 1
+  maxReplicas: 4
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
