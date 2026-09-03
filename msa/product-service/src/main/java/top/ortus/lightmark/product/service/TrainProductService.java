@@ -219,7 +219,7 @@ public class TrainProductService {
 
     // ==================== 结果映射 ====================
 
-    private List<TrainTicketDTO> tickets(Map<String, Object> response) {
+    List<TrainTicketDTO> tickets(Map<String, Object> response) {
         Object rows = response.get("tickets");
         if (!(rows instanceof List<?>)) {
             rows = response.get("trains");
@@ -232,15 +232,24 @@ public class TrainProductService {
             if (row instanceof Map<?, ?> m) {
                 Map<String, Object> x = new LinkedHashMap<>();
                 m.forEach((k, v) -> x.put(String.valueOf(k), v));
+                Map<String, Integer> seats = normalizeSeats(x.get("seats"));
+                if (seats.isEmpty()) {
+                    seats = normalizeSeats(x.get("seat_info"));
+                }
+                int stock = integer(x.get("stock"));
+                if (stock <= 0) {
+                    stock = seats.values().stream().mapToInt(Integer::intValue).sum();
+                }
+                Double price = number(x.get("price"));
                 out.add(new TrainTicketDTO(
                         String.valueOf(x.getOrDefault("id", x.getOrDefault("train_no", ""))),
                         String.valueOf(x.getOrDefault("name", x.getOrDefault("train_no", ""))),
-                        number(x.get("price")),
-                        integer(x.get("stock")),
+                        price,
+                        stock,
                         integer(x.get("soldCount")),
                         List.of(),
                         x,
-                        Map.of(),
+                        seats,
                         Map.of()));
             }
         }
@@ -263,6 +272,38 @@ public class TrainProductService {
         try {
             return x == null ? 0 : Integer.valueOf(x.toString());
         } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Integer> normalizeSeats(Object value) {
+        if (!(value instanceof Map<?, ?> raw)) {
+            return Map.of();
+        }
+        Map<String, Integer> seats = new LinkedHashMap<>();
+        Map<String, String> names = Map.of(
+                "business", "商务座", "first_class", "一等座", "second_class", "二等座",
+                "soft_sleeper", "软卧", "hard_sleeper", "硬卧", "hard_seat", "硬座",
+                "no_seat", "无座");
+        raw.forEach((key, item) -> {
+            String seat = names.getOrDefault(String.valueOf(key), String.valueOf(key));
+            int count = seatCount(item);
+            if (count > 0) {
+                seats.put(seat, count);
+            }
+        });
+        return seats;
+    }
+
+    private int seatCount(Object value) {
+        if (value == null) return 0;
+        String text = String.valueOf(value).trim();
+        if (text.isBlank() || "无".equals(text) || "--".equals(text) || "候补".equals(text) || "售完".equals(text)) return 0;
+        if ("有".equals(text) || text.contains("充足")) return 20;
+        try {
+            return Math.max(0, Integer.parseInt(text));
+        } catch (NumberFormatException ignored) {
             return 0;
         }
     }
