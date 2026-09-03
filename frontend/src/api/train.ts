@@ -138,7 +138,7 @@ export function getTrainCalendar(data: TrainCalendarPayload) {
 }
 
 export function createTrainOrder(data: TrainOrderPayload) {
-  return http.post<TrainOrderResponse>('/orders/train', data)
+  return http.post<TrainOrderResponse>('/trains/order', data)
 }
 
 export function payOrder(orderNo: string, paymentMethod?: string) {
