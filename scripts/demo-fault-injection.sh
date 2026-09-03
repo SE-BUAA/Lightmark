@@ -44,13 +44,18 @@ bad()  { printf '\033[1;31m  ✘ %s\033[0m\n' "$*"; FAIL=$((FAIL+1)); }
 note() { printf '\033[1;33m  · %s\033[0m\n' "$*"; }
 pause() { [ "$AUTO" = "1" ] && return 0; printf '\033[1;37m  —— 按回车继续(Ctrl+C 安全退出并自动恢复) ——\033[0m'; read -r _; }
 
-# curl:GET/POST,结果存 CURL_CODE(HTTP码)+CURL_BODY(文件)
+# curl:GET/POST,结果存 CURL_CODE(HTTP码)+CURL_BODY(文件);$3 为可选附加请求头
 curl_req() {
-  local url="$1" data="${2:-}"
+  local url="$1" data="${2:-}" extra="${3:-}"
   CURL_BODY="$(mktemp)"
   if [ -n "$data" ]; then
-    CURL_CODE=$(curl -sS --max-time 40 -o "$CURL_BODY" -w '%{http_code}' \
-      -X POST -H 'Content-Type: application/json' --data "$data" "$url")
+    if [ -n "$extra" ]; then
+      CURL_CODE=$(curl -sS --max-time 40 -o "$CURL_BODY" -w '%{http_code}' \
+        -X POST -H 'Content-Type: application/json' -H "$extra" --data "$data" "$url")
+    else
+      CURL_CODE=$(curl -sS --max-time 40 -o "$CURL_BODY" -w '%{http_code}' \
+        -X POST -H 'Content-Type: application/json' --data "$data" "$url")
+    fi
   else
     CURL_CODE=$(curl -sS --max-time 40 -o "$CURL_BODY" -w '%{http_code}' "$url")
   fi
@@ -162,7 +167,7 @@ preflight() {
 scenario_a() {
   say "========== 场景 A:停 user-service —— 备用结果(昵称降级)+ 故障隔离 =========="
 
-  # A0 基线:找一个有作者的游记
+  # A0 基线:找一个有作者的游记;没有则可用 ADMIN_TOKEN 自动发布一篇
   local pid="" base_nick=""
   curl_req "$BASE_URL/api/posts?page=1&size=3"
   if [ "$CURL_CODE" = "200" ]; then
@@ -170,7 +175,24 @@ scenario_a() {
     base_nick=$(jget "data.list.0.author.nickname")
   fi
   if [ -z "$pid" ] || [ "$pid" = "0" ]; then
-    note "社区暂时没有游记,请先登录前端发布一篇(或用 ADMIN_TOKEN 环境变量授权创建),再重跑场景 A"
+    if [ -n "${ADMIN_TOKEN:-}" ]; then
+      say "社区无游记,使用 ADMIN_TOKEN 自动发布一篇演示游记"
+      curl_req "$BASE_URL/api/posts" \
+        '{"title":"故障注入演示:昵称降级验证","content":"这是一篇用于验证备用结果(昵称降级)的演示游记。"}' \
+        "Authorization: Bearer ${ADMIN_TOKEN}"
+      if [ "$CURL_CODE" = "200" ]; then
+        ok "发帖成功(HTTP 200)"
+        sleep 1
+        curl_req "$BASE_URL/api/posts?page=1&size=3"
+        pid=$(jget "data.list.0.id")
+        base_nick=$(jget "data.list.0.author.nickname")
+      else
+        bad "自动发帖失败(HTTP $CURL_CODE):$(body_snip)"
+      fi
+    fi
+  fi
+  if [ -z "$pid" ] || [ "$pid" = "0" ]; then
+    note "社区仍无游记:① 先在浏览器登录前端发布一篇游记再重跑;② 或 export ADMIN_TOKEN=<登录后拿到的JWT> 后重跑(脚本自动发帖)"
     return 1
   fi
   ok "基线:游记 id=$pid,作者昵称='${base_nick}'"
@@ -229,9 +251,29 @@ scenario_b() {
 
   # B0 基线:拿到真实机票 productId,预览成功
   local pid=""
-  curl_req "$BASE_URL/api/flights/search?page=1&size=1"
+  curl_req "$BASE_URL/api/flights/search?page=1&size=3"
   pid=$(jget "data.list.0.id")
-  if [ -z "$pid" ] || [ "$pid" = "0" ]; then bad "无法从机票搜索取到 productId,中止场景 B"; return 1; fi
+  if [ -z "$pid" ] || [ "$pid" = "0" ]; then pid=$(jget "data.records.0.id"); fi
+  if [ -z "$pid" ] || [ "$pid" = "0" ]; then
+    note "机票搜索响应结构与预期不符,打印诊断信息:"
+    python3 - "$CURL_BODY" <<'PY'
+import json,sys
+try:
+    d=json.load(open(sys.argv[1],encoding="utf-8"))
+    print("top keys:", list(d.keys()))
+    data=d.get("data")
+    print("data:", (list(data.keys()) if isinstance(data,dict) else type(data).__name__))
+    lst=(data or {}).get("list") or (data or {}).get("records") or []
+    print("rows:", len(lst))
+    if lst:
+        print("first row keys:", list(lst[0].keys()) if isinstance(lst[0],dict) else type(lst[0]).__name__)
+        print("first row:", json.dumps(lst[0], ensure_ascii=False)[:300])
+except Exception as e:
+    print("json parse error:", e)
+PY
+    bad "无法从机票搜索取到 productId,中止场景 B(可用上方诊断结果修正脚本)"
+    return 1
+  fi
   curl_req "$BASE_URL/api/flights/order/preview" "{\"productId\":\"$pid\",\"passengerCount\":1}"
   local amt; amt=$(jget "data.payAmount")
   if [ "$CURL_CODE" = "200" ]; then ok "基线:productId=$pid,预览应支付 ¥$amt";
@@ -311,7 +353,7 @@ scenario_c() {
   say "隔离验证:产品域(机票/酒店/火车)、订单域、用户域全部正常"
   local n=0
   curl_req "$BASE_URL/api/flights/search?page=1&size=1";  [ "$CURL_CODE" = "200" ] && n=$((n+1)) || note "机票 HTTP $CURL_CODE"
-  curl_req "$BASE_URL/api/hotels?page=1&size=1";          [ "$CURL_CODE" = "200" ] && n=$((n+1)) || note "酒店 HTTP $CURL_CODE"
+  curl_req "$BASE_URL/api/hotel/list?page=1&size=1";     [ "$CURL_CODE" = "200" ] && n=$((n+1)) || note "酒店 HTTP $CURL_CODE"
   local pid=""; pid=$(jget "data.list.0.id")
   if [ -n "$pid" ] && [ "$pid" != "0" ]; then
     curl_req "$BASE_URL/api/flights/order/preview" "{\"productId\":\"$pid\",\"passengerCount\":1}"
