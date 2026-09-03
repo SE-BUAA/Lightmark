@@ -114,7 +114,7 @@ svc_freeze() {  # $1=svc;成功输出 FROZEN-<pid> 并返回 0
 }
 svc_unfreeze() {  # $1=svc;成功返回 0
   kubectl exec -n "$NS" deploy/"$1" -- env APP_PAT=app.jar sh -c \
-    'for p in /proc/[0-9]*; do c=$(tr "\0" " " < "$p/cmdline" 2>/dev/null); case "$c" in *"$APP_PAT"*) kill -CONT "${p#/proc/}" 2>/dev/null && echo RESUMED-"${p#/proc/}"; exit 0;; esac; done; echo NOJAVA' 2>/dev/null | grep -q 'RESUMED-[0-9]+'
+    'for p in /proc/[0-9]*; do c=$(tr "\0" " " < "$p/cmdline" 2>/dev/null); case "$c" in *"$APP_PAT"*) kill -CONT "${p#/proc/}" 2>/dev/null && echo RESUMED-"${p#/proc/}"; exit 0;; esac; done; echo NOJAVA' 2>/dev/null | grep -qE 'RESUMED-[0-9]+'
 }
 svc_down() {  # $1=service
   local svc="$1"
