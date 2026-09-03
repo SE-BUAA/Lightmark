@@ -260,7 +260,12 @@ const destinations = [
   display: flex;
   align-items: center;
   overflow: hidden;
-  background: var(--gold-300);
+  background: linear-gradient(
+    135deg,
+    var(--navy-900) 0%,
+    var(--navy-700) 60%,
+    var(--navy-600) 100%
+  );
 }
 
 .hero-bg {
