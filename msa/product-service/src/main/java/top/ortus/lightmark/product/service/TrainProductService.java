@@ -62,7 +62,7 @@ public class TrainProductService {
             args.put("middle_station", "");
         }
         Map<String, Object> response = call(transfer ? "query-transfer" : "query-tickets", args);
-        Map<String, Object> priceResponse = transfer ? Map.of() : call("query_ticket_price", args);
+        Map<String, Object> priceResponse = transfer ? Map.of() : call("query-ticket-price", args);
         return tickets(response, pricesByTrainCode(priceResponse));
     }
 

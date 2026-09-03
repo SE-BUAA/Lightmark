@@ -163,7 +163,7 @@ public class TrainServiceImpl implements TrainService {
             "train_date", date
         );
         try {
-            return trainMcpClient.callToolFast("query_ticket_price", arguments);
+            return trainMcpClient.callToolFast("query-ticket-price", arguments);
         } catch (RuntimeException ex) {
             // Price lookup is supplementary; keep ticket availability usable if the tool is unavailable.
             return Map.of();
