@@ -1,0 +1,16 @@
+spring:
+  datasource:
+    url: ${ORDER_IT_DB_URL}
+    username: ${ORDER_IT_DB_USER}
+    password: ${ORDER_IT_DB_PASSWORD}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration/order
+    baseline-on-migrate: true
+  task:
+    scheduling:
+      enabled: false
+
+logging:
+  level:
+    org.flywaydb: warn

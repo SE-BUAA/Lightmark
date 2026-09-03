@@ -1,0 +1,67 @@
+# =====================================================================
+# user-service 会话粘滞专用路由（Traefik IngressRoute + sticky cookie）
+#
+# 背景：验证码/登录依赖 HttpSession（进程内存）。user-service 扩到多副本时，
+# 若验证码请求与登录请求落到不同 Pod，会报 "captcha expired"。
+# 本路由把 /api/auth 全部请求按 cookie（lm_user_session）固定到同一 Pod。
+#
+# 注意：Traefik 的 IngressRoute 若在 spec 层声明 tls，只会生效于 TLS 入口，
+# 因此拆成两条：
+#   1) msa-user-auth-sticky     -> entryPoints: [web]（HTTP :80，无 TLS）
+#   2) msa-user-auth-sticky-tls -> entryPoints: [websecure]（HTTPS :443，带证书）
+#
+# - __MSA_INGRESS_HOST__ 由 scripts/deploy-msa-k8s.sh 渲染
+# - priority 200 高于普通 Ingress 的路径优先级，避免与其他路由竞争
+# - apiVersion 兼容：Traefik v2 用 traefik.containo.us/v1alpha1，
+#   部署脚本会自动尝试并回退（sed 会同时替换本文件两条 IngressRoute）
+# - TLS 复用 MSA 专用证书 secret lightmark-msa-tls
+# =====================================================================
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: msa-user-auth-sticky
+  namespace: lightmark
+  labels:
+    app: lightmark
+    tier: user-service
+spec:
+  entryPoints:
+    - web
+  routes:
+    - kind: Rule
+      match: Host(`__MSA_INGRESS_HOST__`) && PathPrefix(`/api/auth`)
+      priority: 200
+      services:
+        - name: user-service
+          port: 8081
+          sticky:
+            cookie:
+              name: lm_user_session
+              httpOnly: true
+              sameSite: lax
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: msa-user-auth-sticky-tls
+  namespace: lightmark
+  labels:
+    app: lightmark
+    tier: user-service
+spec:
+  entryPoints:
+    - websecure
+  tls:
+    secretName: lightmark-msa-tls
+  routes:
+    - kind: Rule
+      match: Host(`__MSA_INGRESS_HOST__`) && PathPrefix(`/api/auth`)
+      priority: 200
+      services:
+        - name: user-service
+          port: 8081
+          sticky:
+            cookie:
+              name: lm_user_session
+              httpOnly: true
+              sameSite: lax

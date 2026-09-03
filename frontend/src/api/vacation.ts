@@ -70,7 +70,7 @@ export function generateVacationDetail(productId: string) {
 }
 
 export function createVacationOrder(data: VacationOrderPayload) {
-  return http.post<TrainOrderResponse>('/orders/vacation', data)
+  return http.post<TrainOrderResponse>('/vacations/order', data)
 }
 
 export function payVacationOrder(orderNo: string, paymentMethod?: string) {

@@ -39,7 +39,7 @@ public class VacationServiceImpl implements VacationService{
     private final DeepSeekChatModel chatModel;
     private final ConversationService conversationService;
     private final DeepSeekChatOptions aiOptions = new DeepSeekChatOptions.Builder()
-        .temperature(0.8)
+        .temperature(0.0)
         .internalToolExecutionEnabled(true)
         .build();
 

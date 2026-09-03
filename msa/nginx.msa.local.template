@@ -1,0 +1,153 @@
+# =====================================================================
+# MSA 本地前端 Nginx 配置模板（FRONTEND_API_MODE=local，默认）
+#
+# - 托管 Vue SPA 静态资源（history 路由回退 index.html）
+# - /api/* 按前缀路由到 compose 网络内的 4 个本地微服务（最长前缀优先）：
+#     /api/auth、/api/user、/api/admin*        -> user-service:8081
+#     /api/flights、/api/hotels、/api/trains、/api/vacations、/api/products -> product-service:8082
+#     /api/orders、/api/*/order*               -> order-service:8083
+#     /api/chat、/api/ai、/api/itinerary、/api/community、/api/posts、/api/questions -> content-service:8084
+# - 公共代理参数见 nginx.proxy-common.conf（含 AI 流式接口的长超时）
+# =====================================================================
+server {
+    listen 80;
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    client_max_body_size 20m;
+
+    # SPA history 路由回退：不存在的路径一律交给 index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # 静态资源：命中即返回，未命中 404
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|webp|woff2?|ttf|eot|map)$ {
+        try_files $uri =404;
+        expires 7d;
+        access_log off;
+    }
+
+    # ===== user-service (8081) =====
+    location /api/auth/ {
+        proxy_pass http://user-service:8081;
+        include /etc/nginx/proxy-common.conf;
+    }
+    location /api/user/ {
+        proxy_pass http://user-service:8081;
+        include /etc/nginx/proxy-common.conf;
+    }
+    location /api/admin/users {
+        proxy_pass http://user-service:8081;
+        include /etc/nginx/proxy-common.conf;
+    }
+    location /api/admin/logs {
+        proxy_pass http://user-service:8081;
+        include /etc/nginx/proxy-common.conf;
+    }
+    location /api/admin/ {
+        proxy_pass http://user-service:8081;
+        include /etc/nginx/proxy-common.conf;
+    }
+    location /api/health {
+        proxy_pass http://user-service:8081;
+        include /etc/nginx/proxy-common.conf;
+    }
+
+    # ===== order-service (8083)：长前缀优先于 product 的 /api/flights 等 =====
+    # 用户中心"我的订单"(订单域直供;长前缀优先于 user-service 的 /api/user)
+    location /api/user/orders {
+        proxy_pass http://order-service:8083;
+        include /etc/nginx/proxy-common.conf;
+    }
+    location /api/flights/order {
+        proxy_pass http://order-service:8083;
+        include /etc/nginx/proxy-common.conf;
+    }
+    location /api/trains/order {
+        proxy_pass http://order-service:8083;
+        include /etc/nginx/proxy-common.conf;
+    }
+    location /api/vacations/order {
+        proxy_pass http://order-service:8083;
+        include /etc/nginx/proxy-common.conf;
+    }
+    location /api/hotel/order {
+        proxy_pass http://order-service:8083;
+        include /etc/nginx/proxy-common.conf;
+    }
+    location /api/orders {
+        proxy_pass http://order-service:8083;
+        include /etc/nginx/proxy-common.conf;
+    }
+    location /api/admin/orders {
+        proxy_pass http://order-service:8083;
+        include /etc/nginx/proxy-common.conf;
+    }
+
+    # ===== product-service (8082) =====
+    location /api/flights {
+        proxy_pass http://product-service:8082;
+        include /etc/nginx/proxy-common.conf;
+    }
+    location /api/hotels {
+        proxy_pass http://product-service:8082;
+        include /etc/nginx/proxy-common.conf;
+    }
+    location /api/hotel {
+        proxy_pass http://product-service:8082;
+        include /etc/nginx/proxy-common.conf;
+    }
+    location /api/trains {
+        proxy_pass http://product-service:8082;
+        include /etc/nginx/proxy-common.conf;
+    }
+    location /api/vacations {
+        proxy_pass http://product-service:8082;
+        include /etc/nginx/proxy-common.conf;
+    }
+    location /api/products {
+        proxy_pass http://product-service:8082;
+        include /etc/nginx/proxy-common.conf;
+    }
+    location /api/legacy {
+        proxy_pass http://product-service:8082;
+        include /etc/nginx/proxy-common.conf;
+    }
+    location /api/admin/products {
+        proxy_pass http://product-service:8082;
+        include /etc/nginx/proxy-common.conf;
+    }
+
+    # ===== content-service (8084) =====
+    location /api/chat {
+        proxy_pass http://content-service:8084;
+        include /etc/nginx/proxy-common.conf;
+    }
+    location /api/ai {
+        proxy_pass http://content-service:8084;
+        include /etc/nginx/proxy-common.conf;
+    }
+    location /api/itinerary {
+        proxy_pass http://content-service:8084;
+        include /etc/nginx/proxy-common.conf;
+    }
+    location /api/community {
+        proxy_pass http://content-service:8084;
+        include /etc/nginx/proxy-common.conf;
+    }
+    location /api/posts {
+        proxy_pass http://content-service:8084;
+        include /etc/nginx/proxy-common.conf;
+    }
+    location /api/questions {
+        proxy_pass http://content-service:8084;
+        include /etc/nginx/proxy-common.conf;
+    }
+    location /api/upload/image {
+        proxy_pass http://content-service:8084;
+        include /etc/nginx/proxy-common.conf;
+    }
+}

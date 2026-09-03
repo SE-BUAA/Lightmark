@@ -135,9 +135,11 @@ public class TrainServiceImpl implements TrainService {
             return cached.tickets();
         }
         Map<String, Object> ticketResponse = queryTicketTool(startStation, endStation, date);
+        Map<String, Object> priceResponse = queryTicketPriceTool(startStation, endStation, date);
+        Map<String, Map<String, Double>> pricesByTrainCode = pricesByTrainCode(priceResponse);
         List<Map<String, Object>> trains = readTrainRows(ticketResponse);
         List<TrainTicketDTO> tickets = trains.stream()
-            .map(train -> toTicket(startStation, endStation, date, train, Map.of()))
+            .map(train -> toTicket(startStation, endStation, date, train, pricesByTrainCode))
             .filter(ticket -> ticketMatchesTrainTypes(ticket, trainTypes))
             .filter(ticket -> ticketMatchesSeatTypes(ticket, seatTypes))
             .toList();
@@ -152,6 +154,20 @@ public class TrainServiceImpl implements TrainService {
             "train_date", date
         );
         return trainMcpClient.callToolFast("query-tickets", arguments);
+    }
+
+    private Map<String, Object> queryTicketPriceTool(String startStation, String endStation, String date) {
+        Map<String, Object> arguments = Map.of(
+            "from_station", startStation,
+            "to_station", endStation,
+            "train_date", date
+        );
+        try {
+            return trainMcpClient.callToolFast("query-ticket-price", arguments);
+        } catch (RuntimeException ex) {
+            // Price lookup is supplementary; keep ticket availability usable if the tool is unavailable.
+            return Map.of();
+        }
     }
 
     private List<TrainTicketDTO> queryTransfers(String startStation, String endStation, String date, List<String> trainTypes, List<String> seatTypes) {
@@ -226,8 +242,10 @@ public class TrainServiceImpl implements TrainService {
 
     private TrainCalendarDayResponse queryCalendarDay(String startStation, String endStation, String date, List<String> trainTypes, List<String> seatTypes) {
         Map<String, Object> ticketResponse = queryTicketTool(startStation, endStation, date);
+        Map<String, Map<String, Double>> pricesByTrainCode = pricesByTrainCode(
+            queryTicketPriceTool(startStation, endStation, date));
         List<TrainTicketDTO> tickets = readTrainRows(ticketResponse).stream()
-            .map(train -> toTicket(startStation, endStation, date, train, Map.of()))
+            .map(train -> toTicket(startStation, endStation, date, train, pricesByTrainCode))
             .filter(ticket -> ticketMatchesTrainTypes(ticket, trainTypes))
             .filter(ticket -> ticketMatchesSeatTypes(ticket, seatTypes))
             .toList();

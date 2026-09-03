@@ -89,7 +89,6 @@ public class CommunityServiceImpl implements CommunityService {
         ensureUserExists(userId);
         PostDTO post = payload == null ? new PostDTO() : payload;
         validatePost(post);
-        GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(connection -> {
             PreparedStatement ps = connection.prepareStatement("""
                     insert into post (user_id, title, content, images, likes, comments_count, status)
@@ -100,8 +99,8 @@ public class CommunityServiceImpl implements CommunityService {
             ps.setString(3, defaultText(post.getContent(), ""));
             ps.setString(4, normalizePostImages(post.getImages()));
             return ps;
-        }, keyHolder);
-        return getExistingPost(userId, generatedId(keyHolder));
+        });
+        return getExistingPost(userId, lastInsertedId());
     }
 
     @Override
@@ -537,6 +536,14 @@ public class CommunityServiceImpl implements CommunityService {
 
     private String defaultText(String value, String fallback) {
         return StringUtils.hasText(value) ? value.trim() : fallback;
+    }
+
+    private Long lastInsertedId() {
+        Long id = jdbcTemplate.queryForObject("select last_insert_id()", Long.class);
+        if (id == null || id <= 0) {
+            throw new ApiException(500, "游记发布失败");
+        }
+        return id;
     }
 
     private String readString(java.sql.ResultSet rs, String column) {

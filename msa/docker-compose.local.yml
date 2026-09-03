@@ -1,0 +1,156 @@
+# =====================================================================
+# Lightmark MSA 本地一键运行（无需 Kubernetes，Docker 容器即可）
+#
+# 用法：
+#   bash msa/run-local.sh          # Ubuntu / macOS
+#   powershell msa/run-local.ps1   # Windows
+#
+# 包含 5 个容器：4 个后端微服务（8081-8084）+ 前端 SPA（默认 8080）。
+# 后端数据库使用服务器现有 MySQL（默认 150.230.223.11:3306，可用环境变量覆盖）。
+# 前端 /api 反代到已部署的 MSA 入口（默认 https://msa.lightmark.ortus.top，
+# 用 MSA_API_HOST 覆盖），因此本地打开 http://127.0.0.1:8080 即可访问完整页面。
+#
+# 首次运行会自动尝试创建 lightmark_user/product/order/content 4 个 schema
+# 并授权（见 run-local.sh 中的引导 SQL）；无建库权限时脚本会给出提示。
+#
+# 所有变量均可用环境变量覆盖，或直接编辑仓库根目录 .env（会被自动读取）：
+#   DB_HOST / DB_PORT / DB_USER / DB_PASSWORD / JWT_SECRET
+#   USER_DB_* / PRODUCT_DB_* / ORDER_DB_* / CONTENT_DB_*（按需覆盖默认 schema）
+#   FRONTEND_PORT（默认 8080） / MSA_API_HOST（默认 msa.lightmark.ortus.top）
+# =====================================================================
+name: lightmark-msa-local
+
+services:
+  user-service:
+    build:
+      context: ..
+      dockerfile: msa/user-service/Dockerfile
+    container_name: lightmark-msa-user
+    ports:
+      - "8081:8081"
+    environment:
+      USER_SERVICE_PORT: "8081"
+      USER_DB_HOST: ${USER_DB_HOST:-150.230.223.11}
+      USER_DB_PORT: ${USER_DB_PORT:-3306}
+      USER_DB_NAME: ${USER_DB_NAME:-lightmark_user}
+      USER_DB_USER: ${USER_DB_USER:-se}
+      USER_DB_PASSWORD: ${USER_DB_PASSWORD:-}
+      USER_FLYWAY_ENABLED: ${USER_FLYWAY_ENABLED:-true}
+      JWT_SECRET: ${JWT_SECRET:-local-msa-dev-secret-0123456789abcdef}
+      JWT_ISSUER: ${JWT_ISSUER:-lightmark}
+      JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-120}
+      AUTH_MAIL_USERNAME: ${AUTH_MAIL_USERNAME:-}
+      AUTH_MAIL_PASSWORD: ${AUTH_MAIL_PASSWORD:-}
+      AUTH_MAIL_FROM_EMAIL: ${AUTH_MAIL_FROM_EMAIL:-}
+      OBJECT_STORAGE_BASE_URL: ${OBJECT_STORAGE_BASE_URL:-}
+
+  product-service:
+    build:
+      context: ..
+      dockerfile: msa/product-service/Dockerfile
+    container_name: lightmark-msa-product
+    ports:
+      - "8082:8082"
+    environment:
+      PRODUCT_SERVICE_PORT: "8082"
+      PRODUCT_DB_HOST: ${PRODUCT_DB_HOST:-150.230.223.11}
+      PRODUCT_DB_PORT: ${PRODUCT_DB_PORT:-3306}
+      PRODUCT_DB_NAME: ${PRODUCT_DB_NAME:-lightmark_product}
+      PRODUCT_DB_USER: ${PRODUCT_DB_USER:-se}
+      PRODUCT_DB_PASSWORD: ${PRODUCT_DB_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-local-msa-dev-secret-0123456789abcdef}
+      JWT_ISSUER: ${JWT_ISSUER:-lightmark}
+      JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-120}
+      # 火车票查询指向本地 MCP 容器（compose 网络内服务名）
+      TRAIN_MCP_URL: http://mcp-12306:8000/mcp
+
+  order-service:
+    build:
+      context: ..
+      dockerfile: msa/order-service/Dockerfile
+    container_name: lightmark-msa-order
+    ports:
+      - "8083:8083"
+    environment:
+      ORDER_SERVICE_PORT: "8083"
+      ORDER_DB_HOST: ${ORDER_DB_HOST:-150.230.223.11}
+      ORDER_DB_PORT: ${ORDER_DB_PORT:-3306}
+      ORDER_DB_NAME: ${ORDER_DB_NAME:-lightmark_order}
+      ORDER_DB_USER: ${ORDER_DB_USER:-se}
+      ORDER_DB_PASSWORD: ${ORDER_DB_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-local-msa-dev-secret-0123456789abcdef}
+      JWT_ISSUER: ${JWT_ISSUER:-lightmark}
+      JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-120}
+      # 容器网络内通过服务名互相调用
+      PRODUCT_SERVICE_BASE_URL: http://product-service:8082
+      USER_SERVICE_BASE_URL: http://user-service:8081
+
+  content-service:
+    build:
+      context: ..
+      dockerfile: msa/content-service/Dockerfile
+    container_name: lightmark-msa-content
+    ports:
+      - "8084:8084"
+    environment:
+      CONTENT_SERVICE_PORT: "8084"
+      CONTENT_DB_HOST: ${CONTENT_DB_HOST:-150.230.223.11}
+      CONTENT_DB_PORT: ${CONTENT_DB_PORT:-3306}
+      CONTENT_DB_NAME: ${CONTENT_DB_NAME:-lightmark_content}
+      CONTENT_DB_USER: ${CONTENT_DB_USER:-se}
+      CONTENT_DB_PASSWORD: ${CONTENT_DB_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-local-msa-dev-secret-0123456789abcdef}
+      JWT_ISSUER: ${JWT_ISSUER:-lightmark}
+      JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-120}
+      LIGHTMARK_SERVICES_USER_URL: http://user-service:8081
+      # AI 密钥（对话/智能行程），读取仓库根 .env
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      LIGHTMARK_AI_API_KEY: ${LIGHTMARK_AI_API_KEY:-}
+      LIGHTMARK_AI_API_URL: ${LIGHTMARK_AI_API_URL:-}
+      LIGHTMARK_AI_MODEL: ${LIGHTMARK_AI_MODEL:-}
+
+  # 12306 MCP 服务（火车票查询数据源）：一键拉镜像运行，本地自给自足
+  # 端口映射 9000(宿主) -> 8000(容器)，与项目默认调用地址 http://<host>:9000/mcp 一致
+  mcp-12306:
+    image: ghcr.io/supikatsujikura/mcp-12306-server:latest
+    container_name: lightmark-msa-mcp12306
+    ports:
+      - "${MCP_PORT:-9000}:8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # 前端 SPA：静态资源 + /api 反向代理
+  # FRONTEND_API_MODE=local（默认）：/api 按前缀路由到本地 4 个微服务（nginx.msa.local.template）
+  # FRONTEND_API_MODE=remote：/api 反代到已部署的 MSA 入口（nginx.msa.conf.template）
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile.nginx
+    container_name: lightmark-msa-frontend
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    environment:
+      MSA_API_HOST: ${MSA_API_HOST:-msa.lightmark.ortus.top}
+    # 容器内 DNS 不读宿主机 hosts，固定解析目标域名 -> 服务器 IP（remote 模式需要）
+    extra_hosts:
+      - "${MSA_API_HOST:-msa.lightmark.ortus.top}:${MSA_API_HOST_IP:-150.230.223.11}"
+    volumes:
+      - ./nginx.msa.${FRONTEND_API_MODE:-local}.template:/etc/nginx/templates/default.conf.template:ro
+      - ./nginx.proxy-common.conf:/etc/nginx/proxy-common.conf:ro
+    depends_on:
+      - user-service
+      - product-service
+      - order-service
+      - content-service
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget -qO- http://127.0.0.1/ 2>/dev/null | grep -q 'id=\"app\"' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 5s

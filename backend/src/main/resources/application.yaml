@@ -37,8 +37,8 @@ spring:
       api-key: ${LIGHTMARK_AI_API_KEY:${DEEPSEEK_API_KEY:your-deepseek-api-key}} # Configure in your environment variables for security
       chat:
         options:
-          model: deepseek-v4-flash  # Fast and responsive model for immediate results
-          temperature: 0.7
+          model: deepseek-chat
+          temperature: 0.0
           internal-tool-execution-enabled: true
           tool-names:
             - search_web
@@ -94,7 +94,7 @@ lightmark:
   ai:
     api-url: ${LIGHTMARK_AI_API_URL:${AI_API_URL:https://api.deepseek.com/chat/completions}}
     api-key: ${LIGHTMARK_AI_API_KEY:${AI_API_KEY:}}
-    model: ${LIGHTMARK_AI_MODEL:${AI_MODEL:deepseek-v4-flash}}
+    model: ${LIGHTMARK_AI_MODEL:${AI_MODEL:deepseek-chat}}
   auth:
     captcha:
       session-key: ${AUTH_CAPTCHA_SESSION_KEY:auth:captcha}

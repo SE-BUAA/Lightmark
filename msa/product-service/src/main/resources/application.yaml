@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: product-service
+  datasource:
+    url: jdbc:mysql://${PRODUCT_DB_HOST:${DB_HOST:127.0.0.1}}:${PRODUCT_DB_PORT:${DB_PORT:3306}}/${PRODUCT_DB_NAME:lightmark_product}?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8
+    username: ${PRODUCT_DB_USER:${DB_USER:lightmark}}
+    # 密码必须由部署环境注入，示例值不作为运行时默认值。
+    password: ${PRODUCT_DB_PASSWORD:${DB_PASSWORD:}}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration/product
+    baseline-on-migrate: true
+lightmark:
+  auth:
+    jwt:
+      # user-service signs tokens; this service only verifies them.
+      secret: ${JWT_SECRET:}
+      issuer: ${JWT_ISSUER:lightmark}
+      expire-minutes: ${JWT_EXPIRE_MINUTES:120}
+app:
+  version: ${APP_VERSION:0.0.1-SNAPSHOT}
+# 12306 MCP 服务地址（火车票查询），可用 TRAIN_MCP_URL 覆盖（如本地 compose 的 http://mcp-12306:8000/mcp）
+train:
+  mcp-url: ${TRAIN_MCP_URL:http://150.230.223.11:9000/mcp}
+server:
+  port: ${PRODUCT_SERVICE_PORT:8082}
