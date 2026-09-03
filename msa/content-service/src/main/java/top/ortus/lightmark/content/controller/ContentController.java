@@ -162,13 +162,13 @@ public class ContentController {
     }
 
     @PostMapping({"/community/posts/{id}/comments", "/posts/{id}/comments"})
+    @Transactional
     public ApiResponse<Map<String, Object>> addComment(@RequestHeader("Authorization") String authorization, @PathVariable Long id, @RequestBody Map<String, Object> body) {
         long userId = requiredUserId(authorization); post(id); String content = text(body, "content");
         if (!StringUtils.hasText(content)) throw new ApiException(400, "评论内容不能为空");
-        KeyHolder keys = new GeneratedKeyHolder();
-        jdbc.update(c -> { PreparedStatement ps = c.prepareStatement("insert into comment(target_type,target_id,user_id,parent_id,content,likes,is_approved) values('POST',?,?,?, ?,0,1)", Statement.RETURN_GENERATED_KEYS); ps.setLong(1,id); ps.setLong(2,userId); ps.setObject(3, body.get("parentId")); ps.setString(4,content.trim()); return ps; }, keys);
+        jdbc.update(c -> { PreparedStatement ps = c.prepareStatement("insert into comment(target_type,target_id,user_id,parent_id,content,likes,is_approved) values('POST',?,?,?, ?,0,1)", Statement.RETURN_GENERATED_KEYS); ps.setLong(1,id); ps.setLong(2,userId); ps.setObject(3, body.get("parentId")); ps.setString(4,content.trim()); return ps; });
         jdbc.update("update post set comments_count=comments_count+1 where id=?", id);
-        return ApiResponse.ok(jdbc.queryForMap("select id,target_type,target_id,user_id,parent_id,content,likes,create_time from comment where id=?", keys.getKey()));
+        return ApiResponse.ok(jdbc.queryForMap("select id,target_type,target_id,user_id,parent_id,content,likes,create_time from comment where id=?", lastInsertedId()));
     }
 
     // -------------------- 问答 --------------------
@@ -183,11 +183,12 @@ public class ContentController {
     }
 
     @PostMapping({"/community/questions", "/questions"})
+    @Transactional
     public ApiResponse<Map<String, Object>> createQuestion(@RequestHeader("Authorization") String authorization, @RequestBody Map<String, Object> body) {
         long userId = requiredUserId(authorization); String title=text(body,"title"), content=text(body,"content");
         if (!StringUtils.hasText(title) || !StringUtils.hasText(content)) throw new ApiException(400,"问题标题和内容不能为空");
-        KeyHolder keys=new GeneratedKeyHolder(); jdbc.update(c->{PreparedStatement ps=c.prepareStatement("insert into question(user_id,title,content,status) values(?,?,?,0)",Statement.RETURN_GENERATED_KEYS);ps.setLong(1,userId);ps.setString(2,title.trim());ps.setString(3,content.trim());return ps;},keys);
-        return ApiResponse.ok(jdbc.queryForMap("select * from question where id=?",keys.getKey()));
+        jdbc.update(c->{PreparedStatement ps=c.prepareStatement("insert into question(user_id,title,content,status) values(?,?,?,0)",Statement.RETURN_GENERATED_KEYS);ps.setLong(1,userId);ps.setString(2,title.trim());ps.setString(3,content.trim());return ps;});
+        return ApiResponse.ok(jdbc.queryForMap("select * from question where id=?",lastInsertedId()));
     }
 
     @GetMapping({"/community/questions/{id}", "/questions/{id}"})
@@ -304,6 +305,7 @@ public class ContentController {
     // -------------------- 辅助方法 --------------------
 
     private Map<String,Object> post(Long id){List<Map<String,Object>> rows=jdbc.queryForList("select * from post where id=? and status=1",id);if(rows.isEmpty())throw new ApiException(404,"游记不存在");return rows.get(0);}
+    private Long lastInsertedId(){Long id=jdbc.queryForObject("select last_insert_id()",Long.class);if(id==null||id<=0)throw new ApiException(500,"写入失败");return id;}
     private boolean liked(long userId,long postId){Integer n=jdbc.queryForObject("select count(*) from post_like where post_id=? and user_id=?",Integer.class,postId,userId);return n!=null&&n>0;}
     private void ensureOwner(long id,long userId,String table,String message){Integer n=jdbc.queryForObject("select count(*) from "+table+" where id=? and user_id=?",Integer.class,id,userId);if(n==null||n==0)throw new ApiException(403,message);}
     private void ensureOwnerOrAdmin(long id,long userId,String table,String message,String authorization){if(!isAdmin(authorization))ensureOwner(id,userId,table,message);}

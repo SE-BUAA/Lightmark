@@ -117,7 +117,12 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
     exit 1
 }
 Write-Host "[INFO] 构建并启动 4 个微服务容器（首次构建需数分钟）..."
-docker compose -f docker-compose.local.yml up -d --build
+if (Test-Path $EnvFile) {
+    $ComposeArgs = @("--env-file", $EnvFile, "-f", "docker-compose.local.yml", "up", "-d", "--build")
+} else {
+    $ComposeArgs = @("-f", "docker-compose.local.yml", "up", "-d", "--build")
+}
+docker compose @ComposeArgs
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 # ---------- 5. 健康检查（最多约 200 秒） ----------
