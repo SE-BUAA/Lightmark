@@ -12,6 +12,10 @@ spring:
     locations: classpath:db/migration/content
     baseline-on-migrate: true
 lightmark:
+  ai:
+    api-url: ${LIGHTMARK_AI_API_URL:${AI_API_URL:https://api.deepseek.com/chat/completions}}
+    api-key: ${LIGHTMARK_AI_API_KEY:${AI_API_KEY:${DEEPSEEK_API_KEY:}}}
+    model: ${LIGHTMARK_AI_MODEL:${AI_MODEL:deepseek-chat}}
   auth:
     jwt:
       # user-service signs tokens; this service only verifies them.

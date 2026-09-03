@@ -27,7 +27,7 @@ public class AIClient {
                     @Value("${lightmark.ai.api-url:https://api.deepseek.com/chat/completions}") String apiUrl,
                     @Value("${lightmark.ai.api-key:}") String apiKey,
                     @Value("${DEEPSEEK_API_KEY:}") String deepSeekApiKey,
-                    @Value("${lightmark.ai.model:deepseek-v4-flash}") String model) {
+                    @Value("${lightmark.ai.model:deepseek-chat}") String model) {
         this.restTemplate = restTemplateBuilder
                 .connectTimeout(Duration.ofSeconds(10))
                 .readTimeout(Duration.ofSeconds(60))

@@ -28,7 +28,7 @@ public class ContentAiService {
                             @Value("${lightmark.ai.api-key:}") String key,
                             @Value("${DEEPSEEK_API_KEY:}") String envKey,
                             @Value("${lightmark.ai.model:deepseek-chat}") String model) {
-        this.mapper = mapper; this.url = url; this.key = StringUtils.hasText(key) ? key : envKey; this.model = model;
+        this.mapper = mapper; this.url = normalizeChatCompletionsUrl(url); this.key = StringUtils.hasText(key) ? key : envKey; this.model = model;
         this.http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build();
     }
 
@@ -50,5 +50,12 @@ public class ContentAiService {
         } catch (Exception ignored) {
             return Map.of("content", fallback, "model", model, "degraded", true);
         }
+    }
+
+    private String normalizeChatCompletionsUrl(String value) {
+        if (!StringUtils.hasText(value)) return "";
+        String normalized = value.trim();
+        while (normalized.endsWith("/")) normalized = normalized.substring(0, normalized.length() - 1);
+        return normalized.endsWith("/chat/completions") ? normalized : normalized + "/chat/completions";
     }
 }

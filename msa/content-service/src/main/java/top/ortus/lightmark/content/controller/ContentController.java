@@ -9,6 +9,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.MediaType;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import org.springframework.web.multipart.MultipartFile;
 import top.ortus.lightmark.common.ApiResponse;
 import top.ortus.lightmark.common.PageResponse;
 import top.ortus.lightmark.common.exception.ApiException;
@@ -16,6 +17,7 @@ import top.ortus.lightmark.common.security.JwtTokenService;
 import top.ortus.lightmark.common.security.UserIdentity;
 import top.ortus.lightmark.content.client.UserProfileClient;
 import top.ortus.lightmark.content.service.ContentAiService;
+import top.ortus.lightmark.content.service.CommunityImageStorageService;
 
 import java.sql.PreparedStatement;
 import java.sql.Statement;
@@ -36,16 +38,32 @@ public class ContentController {
     private final JwtTokenService jwt;
     private final UserProfileClient userProfileClient;
     private final ContentAiService aiService;
+    private final CommunityImageStorageService imageStorage;
     /** 会话上下文暂存内存，避免把 AI 对话表引入 content 数据边界。 */
     private final Map<String, List<Map<String, String>>> chatContexts = new ConcurrentHashMap<>();
 
     public ContentController(JdbcTemplate jdbc, ObjectMapper mapper, JwtTokenService jwt,
-                             UserProfileClient userProfileClient, ContentAiService aiService) {
+                             UserProfileClient userProfileClient, ContentAiService aiService,
+                             CommunityImageStorageService imageStorage) {
         this.jdbc = jdbc;
         this.mapper = mapper;
         this.jwt = jwt;
         this.userProfileClient = userProfileClient;
         this.aiService = aiService;
+        this.imageStorage = imageStorage;
+    }
+
+    /** Backward-compatible constructor for unit tests and embedders. */
+    public ContentController(JdbcTemplate jdbc, ObjectMapper mapper, JwtTokenService jwt,
+                             UserProfileClient userProfileClient, ContentAiService aiService) {
+        this(jdbc, mapper, jwt, userProfileClient, aiService, new CommunityImageStorageService());
+    }
+
+    @PostMapping(value = "/upload/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<Map<String, String>> uploadImage(@RequestHeader("Authorization") String authorization,
+                                                         @RequestPart("file") MultipartFile file) {
+        long userId = requiredUserId(authorization);
+        return ApiResponse.ok(Map.of("objectName", imageStorage.upload(userId, file)));
     }
 
     // -------------------- 社区游记 --------------------
