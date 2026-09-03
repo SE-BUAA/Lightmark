@@ -306,6 +306,18 @@ sed "s|__MSA_INGRESS_HOST__|${MSA_INGRESS_HOST}|g" \
 $KUBECTL apply -f "$RENDER_DIR/msa-ingress.yaml"
 echo "[OK] MSA Ingress 已应用（host=${MSA_INGRESS_HOST}）"
 
+# user-service 会话粘滞路由（IngressRoute + sticky cookie）。
+# apiVersion 兼容 Traefik v2(traefik.containo.us)/v3(traefik.io):先试新 group,失败自动回退。
+sed "s|__MSA_INGRESS_HOST__|${MSA_INGRESS_HOST}|g" \
+  "$ROOT_DIR/deploy/k8s/msa/user-auth-sticky.yaml" > "$RENDER_DIR/user-auth-sticky.yaml"
+if ! $KUBECTL apply -f "$RENDER_DIR/user-auth-sticky.yaml" 2>"$RENDER_DIR/sticky-apply.err"; then
+  echo "[INFO] traefik.io/v1alpha1 不可用，回退到 traefik.containo.us/v1alpha1"
+  sed 's|apiVersion: traefik.io/v1alpha1|apiVersion: traefik.containo.us/v1alpha1|' \
+    "$RENDER_DIR/user-auth-sticky.yaml" > "$RENDER_DIR/user-auth-sticky-v2.yaml"
+  $KUBECTL apply -f "$RENDER_DIR/user-auth-sticky-v2.yaml"
+fi
+echo "[OK] user-service 会话粘滞路由已应用（/api/auth -> sticky cookie lm_user_session）"
+
 # =====================================================================
 # [7/8] 等待全部 Deployment 就绪
 # =====================================================================

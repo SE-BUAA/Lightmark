@@ -30,14 +30,9 @@ spec:
     - host: __MSA_INGRESS_HOST__
       http:
         paths:
-          # ---- user-service（认证/用户域） ----
-          - path: /api/auth
-            pathType: Prefix
-            backend:
-              service:
-                name: user-service
-                port:
-                  number: 8081
+          # ---- user-service（用户域）----
+          # 注：/api/auth 已由 IngressRoute msa-user-auth-sticky 处理（会话粘滞），
+          # 不在此重复定义，避免与粘滞路由竞争。
           - path: /api/user
             pathType: Prefix
             backend:
