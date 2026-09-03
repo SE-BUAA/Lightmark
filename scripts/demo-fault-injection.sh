@@ -260,7 +260,8 @@ scenario_a() {
   local pid2; pid2=$(jget "data.list.0.id")
   if [ -n "$pid2" ] && [ "$pid2" != "0" ]; then
     curl_req "$BASE_URL/api/flights/order/preview" "{\"productId\":\"$pid2\",\"passengerCount\":1}"
-    if [ "$CURL_CODE" = "200" ]; then ok "订单预览 HTTP 200(订单域正常)"; else note "订单预览 HTTP $CURL_CODE"; fi
+    if [ "$CURL_CODE" = "200" ]; then ok "订单预览 HTTP 200(订单域正常)";
+    else note "订单预览 HTTP $CURL_CODE,msg=$(jget msg)"; fi
   fi
   pause
 
@@ -387,7 +388,7 @@ scenario_c() {
   local pid=""; pid=$(jget "data.list.0.id")
   if [ -n "$pid" ] && [ "$pid" != "0" ]; then
     curl_req "$BASE_URL/api/flights/order/preview" "{\"productId\":\"$pid\",\"passengerCount\":1}"
-    [ "$CURL_CODE" = "200" ] && n=$((n+1)) || note "订单预览 HTTP $CURL_CODE"
+    if [ "$CURL_CODE" = "200" ]; then n=$((n+1)); else note "订单预览 HTTP $CURL_CODE,msg=$(jget msg)"; fi
   fi
   curl_req "$BASE_URL/api/auth/admin/login" '{"email":"x@x.com"}'  # 仅探测可达性,不要求成功
   [ "${CURL_CODE:-0}" != "000" ] && n=$((n+1)) || note "用户域不可达"
