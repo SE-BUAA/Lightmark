@@ -106,15 +106,15 @@ PY
 }
 
 # ---------- 服务启停(HPA 感知,可安全恢复) ----------
-# 冻结/解冻 Java 进程:不依赖 PID=1(新镜像 Java 可能由 tini 等包装),
-# 通过 /proc/*/cmdline 定位真正的 java 进程(模式经环境变量传入,避免自匹配)
+# 冻结/解冻 Java 进程:不依赖 PID=1(镜像里 PID1 可能是 sh 包装,cmdline 也含 app.jar),
+# 遍历 /proc/*/cmdline 且要求第一个 token 以 java 结尾(真正的 JVM 进程)
 svc_freeze() {  # $1=svc;成功输出 FROZEN-<pid> 并返回 0
-  kubectl exec -n "$NS" deploy/"$1" -- env APP_PAT=app.jar sh -c \
-    'for p in /proc/[0-9]*; do c=$(tr "\0" " " < "$p/cmdline" 2>/dev/null); case "$c" in *"$APP_PAT"*) kill -STOP "${p#/proc/}" 2>/dev/null && echo FROZEN-"${p#/proc/}"; exit 0;; esac; done; echo NOJAVA' 2>/dev/null | grep -E 'FROZEN-[0-9]+'
+  kubectl exec -n "$NS" deploy/"$1" -- sh -c \
+    'for p in /proc/[0-9]*; do c=$(tr "\0" " " < "$p/cmdline" 2>/dev/null); first=${c%% *}; case "$first" in *java) kill -STOP "${p#/proc/}" 2>/dev/null && echo FROZEN-"${p#/proc/}"; exit 0;; esac; done; echo NOJAVA' 2>/dev/null | grep -E 'FROZEN-[0-9]+'
 }
 svc_unfreeze() {  # $1=svc;成功返回 0
-  kubectl exec -n "$NS" deploy/"$1" -- env APP_PAT=app.jar sh -c \
-    'for p in /proc/[0-9]*; do c=$(tr "\0" " " < "$p/cmdline" 2>/dev/null); case "$c" in *"$APP_PAT"*) kill -CONT "${p#/proc/}" 2>/dev/null && echo RESUMED-"${p#/proc/}"; exit 0;; esac; done; echo NOJAVA' 2>/dev/null | grep -qE 'RESUMED-[0-9]+'
+  kubectl exec -n "$NS" deploy/"$1" -- sh -c \
+    'for p in /proc/[0-9]*; do c=$(tr "\0" " " < "$p/cmdline" 2>/dev/null); first=${c%% *}; case "$first" in *java) kill -CONT "${p#/proc/}" 2>/dev/null && echo RESUMED-"${p#/proc/}"; exit 0;; esac; done; echo NOJAVA' 2>/dev/null | grep -qE 'RESUMED-[0-9]+'
 }
 svc_down() {  # $1=service
   local svc="$1"
