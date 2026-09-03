@@ -84,6 +84,27 @@ print(v if v is not None else "")
 PY
 }
 
+# 从机票搜索响应里挑一条有库存的航班(输出其 productId;无则输出空)
+pick_flight_id() {
+  python3 - "$CURL_BODY" <<'PY'
+import json,sys
+try:
+    d=json.load(open(sys.argv[1],encoding="utf-8"))
+except Exception:
+    print(""); sys.exit(0)
+data=d.get("data") or {}
+lst=data.get("list") or data.get("records") or []
+for it in lst:
+    if not isinstance(it,dict): continue
+    try:
+        if int(it.get("stock") or 0) > 0 and str(it.get("id") or ""):
+            print(it["id"]); sys.exit(0)
+    except Exception:
+        pass
+print("")
+PY
+}
+
 # ---------- 服务启停(HPA 感知,可安全恢复) ----------
 svc_down() {  # $1=service
   local svc="$1"
@@ -120,6 +141,13 @@ svc_up() {  # $1=service
 }
 
 restore_all() {  # 退出时兜底恢复现场
+  for f in "$STATEDIR"/freeze-*; do
+    [ -f "$f" ] || continue
+    local svc=${f##*freeze-}
+    kubectl exec -n "$NS" deploy/"$svc" -- kill -CONT 1 >/dev/null 2>&1
+    kubectl rollout status deployment/"$svc" -n "$NS" --timeout=150s >/dev/null 2>&1
+    note "退出兜底:已解冻 $svc"
+  done
   for f in "$STATEDIR"/down-*; do
     [ -f "$f" ] || continue
     local svc=${f##*down-}
@@ -256,9 +284,9 @@ scenario_a() {
   pause
 
   say "验证④ 订单域不受影响(免鉴权订单预览走 product 校验)"
-  curl_req "$BASE_URL/api/flights/search?page=1&size=1"
-  local pid2; pid2=$(jget "data.list.0.id")
-  if [ -n "$pid2" ] && [ "$pid2" != "0" ]; then
+  curl_req "$BASE_URL/api/flights/search?page=1&size=6"
+  local pid2; pid2=$(pick_flight_id)
+  if [ -n "$pid2" ]; then
     curl_req "$BASE_URL/api/flights/order/preview" "{\"productId\":\"$pid2\",\"passengerCount\":1}"
     if [ "$CURL_CODE" = "200" ]; then ok "订单预览 HTTP 200(订单域正常)";
     else note "订单预览 HTTP $CURL_CODE,msg=$(jget msg)"; fi
@@ -276,91 +304,109 @@ scenario_a() {
   pause
 }
 
-# ---------- 场景 B:product-service 下线 -> 重试 + 熔断 + 恢复自愈 ----------
+# ---------- 场景 B:product-service 故障 -> 超时重试 + 熔断 + 恢复自愈 ----------
 scenario_b() {
-  say "========== 场景 B:停 product-service —— 超时重试 + 熔断 + 自愈 =========="
+  say "========== 场景 B:product-service 故障 —— 超时重试 + 熔断 + 自愈 =========="
+  local pid="" FREEZE=0
 
-  # B0 基线:拿到真实机票 productId,预览成功
-  local pid=""
-  curl_req "$BASE_URL/api/flights/search?page=1&size=3"
-  pid=$(jget "data.list.0.id")
-  if [ -z "$pid" ] || [ "$pid" = "0" ]; then pid=$(jget "data.records.0.id"); fi
-  if [ -z "$pid" ] || [ "$pid" = "0" ]; then
-    note "机票搜索响应结构与预期不符,打印诊断信息:"
+  # B0 基线:挑一条有库存的机票,预览成功
+  curl_req "$BASE_URL/api/flights/search?page=1&size=6"
+  pid=$(pick_flight_id)
+  if [ -z "$pid" ]; then
+    note "机票列表中没有有库存的商品(可能全部售罄),打印诊断信息:"
     python3 - "$CURL_BODY" <<'PY'
 import json,sys
 try:
     d=json.load(open(sys.argv[1],encoding="utf-8"))
-    print("top keys:", list(d.keys()))
-    data=d.get("data")
-    print("data:", (list(data.keys()) if isinstance(data,dict) else type(data).__name__))
-    lst=(data or {}).get("list") or (data or {}).get("records") or []
+    data=d.get("data") or {}
+    lst=data.get("list") or data.get("records") or []
     print("rows:", len(lst))
-    if lst:
-        print("first row keys:", list(lst[0].keys()) if isinstance(lst[0],dict) else type(lst[0]).__name__)
-        print("first row:", json.dumps(lst[0], ensure_ascii=False)[:300])
+    if lst: print("first row:", json.dumps(lst[0], ensure_ascii=False)[:300])
 except Exception as e:
     print("json parse error:", e)
 PY
-    bad "无法从机票搜索取到 productId,中止场景 B(可用上方诊断结果修正脚本)"
+    bad "无法取到有库存的 productId,中止场景 B"
     return 1
   fi
   curl_req "$BASE_URL/api/flights/order/preview" "{\"productId\":\"$pid\",\"passengerCount\":1}"
   local amt; amt=$(jget "data.payAmount")
-  if [ "$CURL_CODE" = "200" ]; then ok "基线:productId=$pid,预览应支付 ¥$amt";
-  else bad "基线预览失败 HTTP $CURL_CODE,中止场景 B"; return 1; fi
+  if [ "$CURL_CODE" = "200" ]; then ok "基线:productId=$pid(有库存),预览应支付 ¥$amt";
+  else bad "基线预览失败 HTTP $CURL_CODE,msg=$(jget msg),中止场景 B"; return 1; fi
   pause
 
+  # 故障注入:优先冻结 Java 进程(SIGSTOP)——Pod 保留、TCP 可连但无响应,
+  # 让订单侧真实走到 3s 读超时;exec 不可用时回退为暂停 HPA + 缩容到 0
+  say "故障注入:冻结 product-service 的 Java 进程(kill -STOP,保留 Pod 制造 3s 超时)"
   touch "$STATEDIR/down-product-service"
-  svc_down product-service || return 1
+  if kubectl exec -n "$NS" deploy/product-service -- kill -STOP 1 >/dev/null 2>&1; then
+    FREEZE=1
+    touch "$STATEDIR/freeze-product-service"
+    ok "已冻结(PID 1);订单侧请求将先经历 3s 读超时+重试,熔断生效后快速失败"
+    sleep 5
+  else
+    note "exec/kill 不可用,回退:暂停 HPA 并缩容到 0"
+    svc_down product-service || return 1
+  fi
 
-  say "故障期:连续调用订单预览 8 次(记录每次耗时,观察'带重试的失败'->'熔断瞬时失败')"
-  local i slow_fail=0 fast_fail=0 code dur t0
-  for i in 1 2 3 4 5 6 7 8; do
+  say "故障期:连续调用订单预览(记录每次耗时:超时重试阶段 vs 熔断快速失败阶段)"
+  local i slow_fail=0 fast_fail=0 code dur t0 total=8
+  [ "$FREEZE" = "1" ] && total=6
+  for i in $(seq 1 "$total"); do
     t0=$(date +%s%3N)
     curl_req "$BASE_URL/api/flights/order/preview" "{\"productId\":\"$pid\",\"passengerCount\":1}"
     dur=$(( $(date +%s%3N) - t0 ))
     local msg; msg=$(jget "msg")
     [ "$CURL_CODE" = "503" ] && [ "$msg" = "服务繁忙，请稍后再试" ] && ok "第${i}次:HTTP $CURL_CODE 耗时${dur}ms 文案='$msg'" \
       || note "第${i}次:HTTP $CURL_CODE 耗时${dur}ms 文案='$msg'"
-    # 熔断打开后不发起网络调用,耗时通常 <150ms;未打开时含 300ms 重试间隔,通常 >300ms
-    if [ "$dur" -lt 150 ] && [ "$CURL_CODE" = "503" ]; then fast_fail=$((fast_fail+1)); fi
+    # 熔断打开后不再等待 3s 网络超时:超时阶段约 6000ms+,快速失败约 350ms,以 1500ms 为界
+    if [ "$dur" -lt 1500 ] && [ "$CURL_CODE" = "503" ]; then fast_fail=$((fast_fail+1)); fi
     [ "$CURL_CODE" = "503" ] && slow_fail=$((slow_fail+1))
-    sleep 1
+    [ "$FREEZE" = "1" ] && sleep 2 || sleep 1
   done
   if [ "$slow_fail" -ge 5 ]; then ok "全部失败且均为 503'服务繁忙，请稍后再试'(降级文案生效,共 $slow_fail 次)";
   else note "503 次数=$slow_fail(未达预期,以实际响应为准,检查 order-service 日志)"; fi
-  if [ "$fast_fail" -ge 1 ]; then ok "出现 ≥1 次瞬时失败(<150ms),说明熔断已打开(快失败,不再等待重试)";
-  else note "未观察到 <150ms 的瞬时失败(熔断阈值 5 次,可再跑几轮)"; fi
+  if [ "$fast_fail" -ge 1 ]; then ok "出现 ≥1 次快速失败(<1500ms,未再等待 3s 网络超时),说明熔断已生效";
+  else note "未观察到快速失败(全部请求都在等待网络超时?)"; fi
   pause
 
-  say "熔断窗口验证:连打 3 次,应全部瞬时失败"
+  say "熔断窗口验证:连打 3 次,应全部快速失败"
   local fastn=0
   for i in 1 2 3; do
     t0=$(date +%s%3N)
     curl_req "$BASE_URL/api/flights/order/preview" "{\"productId\":\"$pid\",\"passengerCount\":1}"
     dur=$(( $(date +%s%3N) - t0 ))
-    [ "$dur" -lt 150 ] && fastn=$((fastn+1))
+    [ "$dur" -lt 1500 ] && fastn=$((fastn+1))
     note "  -> HTTP $CURL_CODE 耗时 ${dur}ms"
   done
-  [ "$fastn" = "3" ] && ok "3/3 瞬时失败(熔断器处于打开状态)" || note "瞬时失败 $fastn/3"
+  [ "$fastn" = "3" ] && ok "3/3 快速失败(熔断器处于打开状态)" || note "快速失败 $fastn/3"
+  pause
 
-  svc_up product-service || return 1
+  # 恢复:解冻(秒级,无冷启动);回退模式则走扩容等待
+  if [ "$FREEZE" = "1" ]; then
+    say "恢复:解冻 product-service(kill -CONT,无需冷启动)"
+    kubectl exec -n "$NS" deploy/product-service -- kill -CONT 1 >/dev/null 2>&1 \
+      || note "解冻失败(可能已被探针重启),继续用 rollout 兜底"
+    kubectl rollout status deployment/product-service -n "$NS" --timeout=150s >/dev/null 2>&1 \
+      && ok "product-service 探针已恢复" || note "rollout 状态未知"
+    rm -f "$STATEDIR/freeze-product-service"
+  else
+    svc_up product-service || return 1
+  fi
+  rm -f "$STATEDIR/down-product-service"
 
-  say "恢复自愈验证:熔断打开 10s 后半开,放行试探请求"
-  note "等待 12s(open 10s -> half-open)…"
-  sleep 12
+  say "恢复自愈验证:熔断 10s 后半开,放行试探请求"
+  note "等待 3s 进入半开窗口…"
+  sleep 3
   t0=$(date +%s%3N)
   curl_req "$BASE_URL/api/flights/order/preview" "{\"productId\":\"$pid\",\"passengerCount\":1}"
   dur=$(( $(date +%s%3N) - t0 ))
   if [ "$CURL_CODE" = "200" ]; then
     local amt2; amt2=$(jget "data.payAmount")
     ok "恢复后预览 HTTP 200 耗时${dur}ms 应支付 ¥$amt2(熔断半开->成功,服务自愈)"
-  else note "恢复后预览 HTTP $CURL_CODE(半开试探未成功,稍后重试一次)"
+  else note "恢复后预览 HTTP $CURL_CODE,msg=$(jget msg)(半开试探未成功,稍后重试一次)"
     sleep 5; curl_req "$BASE_URL/api/flights/order/preview" "{\"productId\":\"$pid\",\"passengerCount\":1}"
-    [ "$CURL_CODE" = "200" ] && ok "重试后 HTTP 200(自愈)" || note "HTTP $CURL_CODE"
+    if [ "$CURL_CODE" = "200" ]; then ok "重试后 HTTP 200(自愈)"; else note "重试后 HTTP $CURL_CODE,msg=$(jget msg)"; fi
   fi
-  rm -f "$STATEDIR/down-product-service"
   pause
 }
 
@@ -383,10 +429,10 @@ scenario_c() {
 
   say "隔离验证:产品域(机票/酒店/火车)、订单域、用户域全部正常"
   local n=0
-  curl_req "$BASE_URL/api/flights/search?page=1&size=1";  [ "$CURL_CODE" = "200" ] && n=$((n+1)) || note "机票 HTTP $CURL_CODE"
+  curl_req "$BASE_URL/api/flights/search?page=1&size=6"; [ "$CURL_CODE" = "200" ] && n=$((n+1)) || note "机票 HTTP $CURL_CODE"
   curl_req "$BASE_URL/api/hotel/list?page=1&size=1";     [ "$CURL_CODE" = "200" ] && n=$((n+1)) || note "酒店 HTTP $CURL_CODE"
-  local pid=""; pid=$(jget "data.list.0.id")
-  if [ -n "$pid" ] && [ "$pid" != "0" ]; then
+  local pid=""; pid=$(pick_flight_id)
+  if [ -n "$pid" ]; then
     curl_req "$BASE_URL/api/flights/order/preview" "{\"productId\":\"$pid\",\"passengerCount\":1}"
     if [ "$CURL_CODE" = "200" ]; then n=$((n+1)); else note "订单预览 HTTP $CURL_CODE,msg=$(jget msg)"; fi
   fi
