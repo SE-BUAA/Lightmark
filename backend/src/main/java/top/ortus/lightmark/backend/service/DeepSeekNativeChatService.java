@@ -197,7 +197,7 @@ public class DeepSeekNativeChatService {
         Map<String, Object> body = new HashMap<>();
         body.put("model", model);
         body.put("messages", messages);
-        body.put("temperature", 0.7);
+        body.put("temperature", 0.0);
         body.put("tools", toolDefinitions());
         body.put("tool_choice", "auto");
         return body;

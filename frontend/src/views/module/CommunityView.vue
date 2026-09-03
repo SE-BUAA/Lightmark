@@ -350,7 +350,7 @@ const postRoute = ref('')
 const postVisibility = ref<'public' | 'private'>('public')
 const allowComments = ref(true)
 const publishAgreed = ref(true)
-const COMMUNITY_IMAGE_BASE_URL = 'https://objectstorage.ap-tokyo-1.oraclecloud.com/p/5R94ZnD93iYTCorrhHEGgkXcgT2tu6J_BD46w3gCc3oJeUa-r-C82LOvxrDvMxE/n/nrrguvtqppqi/b/ortus-bucket/o/'
+const COMMUNITY_IMAGE_BASE_URL = 'https://objectstorage.ap-tokyo-1.oraclecloud.com/p/gpXawfcE00rWWXvf7bRiwadiSeQjLY_ceX-7BGAuQpj0ayMJofdnp5mLD2cFzdNV/n/nrrguvtqppqi/b/ortus-bucket/o/'
 
 const postForm = reactive({ title: '', content: '', images: '' })
 const questionForm = reactive({ title: '', content: '' })

@@ -2,6 +2,7 @@ package top.ortus.lightmark.content.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.http.MediaType;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.transaction.annotation.Transactional;
 import top.ortus.lightmark.common.ApiResponse;
 import top.ortus.lightmark.common.PageResponse;
 import top.ortus.lightmark.common.exception.ApiException;
@@ -108,6 +110,7 @@ public class ContentController {
     }
 
     @PostMapping({"/community/posts", "/posts"})
+    @Transactional
     public ApiResponse<Map<String, Object>> createPost(@RequestHeader("Authorization") String authorization,
                                                         @RequestBody Map<String, Object> body) {
         long userId = requiredUserId(authorization);
@@ -115,12 +118,13 @@ public class ContentController {
         if (!StringUtils.hasText(title)) throw new ApiException(400, "游记标题不能为空");
         String content = text(body, "content");
         String images = json(body.get("images"));
-        KeyHolder keys = new GeneratedKeyHolder();
         jdbc.update(c -> {
             PreparedStatement ps = c.prepareStatement("insert into post(user_id,title,content,images,likes,comments_count,status) values(?,?,?, ?,0,0,1)", Statement.RETURN_GENERATED_KEYS);
             ps.setLong(1, userId); ps.setString(2, title.trim()); ps.setString(3, content); ps.setString(4, images); return ps;
-        }, keys);
-        return ApiResponse.ok(post(keys.getKey().longValue()));
+        });
+        Long postId = jdbc.queryForObject("select last_insert_id()", Long.class);
+        if (postId == null || postId <= 0) throw new ApiException(500, "游记发布失败");
+        return ApiResponse.ok(post(postId));
     }
 
     @PutMapping({"/community/posts/{id}", "/posts/{id}"})
@@ -245,7 +249,37 @@ public class ContentController {
     public ApiResponse<Map<String,String>> export(@RequestHeader("Authorization") String authorization,@PathVariable Long id){long userId=requiredUserId(authorization);ensureOwner(id,userId,"travel_plan","只能导出自己的行程");return ApiResponse.ok(Map.of("fileUrl","/api/itinerary/plans/"+id+"/export","format","json"));}
 
     @PostMapping("/itinerary/ai/generate")
-    public ApiResponse<Map<String,Object>> generate(@RequestHeader("Authorization") String authorization,@RequestBody Map<String,Object> body){requiredUserId(authorization);Map<String,Object> result=new LinkedHashMap<>(aiService.chat("请为"+text(body,"destination")+"生成旅行行程建议", "只返回简洁、结构化的旅行建议。"));result.put("title",text(body,"title"));result.put("destination",text(body,"destination"));return ApiResponse.ok(result);}
+    public ApiResponse<Map<String,Object>> generate(@RequestHeader("Authorization") String authorization,@RequestBody Map<String,Object> body){
+        requiredUserId(authorization);
+        String destination = text(body, "destination");
+        int days = Math.max(1, Math.min(number(body.get("days"), 3), 14));
+        String prompt = "请为" + destination + "安排" + days + "天旅行行程。预算：" + text(body, "budget")
+                + "；偏好：" + text(body, "preferences") + "。只返回JSON数组，每项包含day、theme、items、classicPlaces、museums、foods、souvenirs、tips。";
+        Map<String,Object> ai = aiService.chat(prompt, "你是旅行规划助手，只输出可解析的JSON，不要Markdown代码块。");
+        String planData = normalizePlanData(String.valueOf(ai.getOrDefault("content", "")), days, destination);
+        Map<String,Object> result = new LinkedHashMap<>();
+        result.put("title", destination + days + "日智能行程");
+        result.put("destination", destination);
+        result.put("start_date", text(body, "startDate"));
+        result.put("plan_data", planData);
+        result.put("is_public", 0);
+        result.put("ai_degraded", ai.getOrDefault("degraded", false));
+        return ApiResponse.ok(result);
+    }
+
+    private String normalizePlanData(String content, int days, String destination) {
+        try {
+            JsonNode node = mapper.readTree(content);
+            if (node.has("plan_data")) node = node.get("plan_data");
+            if (node.has("days")) node = node.get("days");
+            if (node.isArray()) return mapper.writeValueAsString(node);
+        } catch (Exception ignored) { }
+        List<Map<String,Object>> fallback = new ArrayList<>();
+        for (int i = 1; i <= days; i++) {
+            fallback.add(Map.of("day", i, "theme", destination + "第" + i + "天", "items", List.of("抵达" + destination + "，根据兴趣游览"), "tips", "请根据实时情况调整行程"));
+        }
+        try { return mapper.writeValueAsString(fallback); } catch (JsonProcessingException ex) { return "[]"; }
+    }
 
     // -------------------- AI 对话 --------------------
 
