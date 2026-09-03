@@ -15,22 +15,31 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class ObjectStorageService {
 
+    static final String LATEST_OBJECT_STORAGE_BASE_URL =
+            "https://objectstorage.ap-tokyo-1.oraclecloud.com/p/5R94ZnD93i9YTCorrhHEGgkXcgT2tu6J_BD46w3gCc3oJeUa-r-C82LOvxrDvMxE/n/nrrguvtqppqi/b/ortus-bucket/o/";
+
     private final HttpClient httpClient;
-    private final String baseUrl;
+    private final List<String> uploadBaseUrls;
 
     public ObjectStorageService(@Value("${lightmark.object-storage.base-url:}") String baseUrl) {
+        this(baseUrl, LATEST_OBJECT_STORAGE_BASE_URL);
+    }
+
+    ObjectStorageService(String baseUrl, String fallbackBaseUrl) {
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
-        this.baseUrl = baseUrl == null ? "" : baseUrl.trim();
+        this.uploadBaseUrls = buildUploadBaseUrls(baseUrl, fallbackBaseUrl);
     }
 
     public String uploadAvatar(String normalizedUserId16, MultipartFile file) {
-        if (baseUrl.isBlank()) {
+        if (uploadBaseUrls.isEmpty()) {
             throw new ApiException(500, "object storage not configured");
         }
         if (normalizedUserId16 == null || normalizedUserId16.isBlank()) {
@@ -49,7 +58,15 @@ public class ObjectStorageService {
     }
 
     private String uploadJpeg(String objectName, byte[] jpegBytes) {
-        return uploadJpeg(baseUrl, objectName, jpegBytes);
+        ApiException lastFailure = null;
+        for (String uploadBaseUrl : uploadBaseUrls) {
+            try {
+                return uploadJpeg(uploadBaseUrl, objectName, jpegBytes);
+            } catch (ApiException ex) {
+                lastFailure = ex;
+            }
+        }
+        throw lastFailure == null ? new ApiException(500, "object storage not configured") : lastFailure;
     }
 
     private String uploadJpeg(String uploadBaseUrl, String objectName, byte[] jpegBytes) {
@@ -80,6 +97,20 @@ public class ObjectStorageService {
             return url.substring(0, url.length() - 1);
         }
         return url;
+    }
+
+    private List<String> buildUploadBaseUrls(String primaryBaseUrl, String fallbackBaseUrl) {
+        List<String> urls = new ArrayList<>();
+        addIfPresent(urls, primaryBaseUrl);
+        addIfPresent(urls, fallbackBaseUrl);
+        return urls;
+    }
+
+    private void addIfPresent(List<String> urls, String url) {
+        String normalized = url == null ? "" : url.trim();
+        if (!normalized.isBlank() && !urls.contains(normalized)) {
+            urls.add(normalized);
+        }
     }
 
     private byte[] toJpeg(MultipartFile file) {
