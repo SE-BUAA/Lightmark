@@ -1,163 +1,167 @@
-# product-service 测试报告
+[toc]
 
-测试日期：2026-09-02  
-分工角色：B（产品服务）  
-当前代码版本：`a049ed4`
+# product-service 集成测试报告
 
-## 1. 测试结论
+## 一、测试执行信息
 
-产品服务自动化测试全部通过，可进入真实数据库和跨服务联调阶段。
+测试日期：2026-09-02。代码版本：`a049ed4`。环境：Java 17、Spring Boot 3.5.14、JUnit 5、MockMvc、Mockito、AssertJ、Maven。
 
-| 指标 | 结果 |
-| --- | ---: |
-| product-service 测试总数 | 14 |
-| 通过 | 14 |
-| 失败 | 0 |
-| 跳过 | 0 |
-| 构建结果 | `BUILD SUCCESS` |
+执行命令：`cd D:\Code\Lightmark\msa; mvn -pl product-service -am test`
 
-## 2. 测试目标
+结果：`BUILD SUCCESS`。共 14 个用例，14 个通过，0 个失败，0 个跳过，0 个阻塞。
 
-验证 `product-service` 在微服务拆分后的接口路由、参数绑定、响应结构、产品查询逻辑、库存适配和 JWT 内部接口保护是否符合订单系统调用契约。
+## 二、测试用例明细
 
-本轮测试不连接真实 MySQL，不修改产品数据库，也不依赖火车票 MCP 服务；数据库访问和外部服务均通过 Mock 隔离。
+每个用例均按图片示例使用独立两列表格。
 
-## 3. 测试环境
-
-| 项目 | 配置 |
+### P000
+| 测试名称 | 航班搜索过滤与分页 |
 | --- | --- |
-| JDK | 17 |
-| Spring Boot | 3.5.14 |
-| 构建工具 | Maven |
-| 测试框架 | JUnit 5、Spring MockMvc、Mockito、AssertJ |
-| 测试日期 | 2026-09-02 |
-| 测试模块 | `lightmark-common`、`product-service` |
+| 测试编号 | `P000` |
+| 测试函数 | `FlightProductServiceTest.searchFiltersAndPaginatesFlights` |
+| 输入数据 | 两条 `BJS` 航班；第 1 页、每页 1 条。 |
+| 前置条件 | Mockito 航班查询返回两条匹配记录。 |
+| 预期输出 | 总数 2，当前页 1 条，按价格升序返回价格 100 的航班。 |
+| 实际输出 | 总数 2、返回 1 条、首条价格 100，测试通过。 |
 
-## 4. 执行方式与结果
+### P010
+| 测试名称 | 航班价格日历可用性 |
+| --- | --- |
+| 测试编号 | `P010` |
+| 测试函数 | `FlightProductServiceTest.priceCalendarReturnsAvailability` |
+| 输入数据 | 起始日期 `2026-09-01`，查询 2 天；仅 9 月 1 日有航班。 |
+| 前置条件 | 日期范围计算使用固定 Mock 数据。 |
+| 预期输出 | 返回 2 天；有航班日期可用，无航班日期不可用。 |
+| 实际输出 | 日期数量和可用性标志正确，测试通过。 |
 
-在仓库根目录执行：
+### P020
+| 测试名称 | 航班库存原子扣减 |
+| --- | --- |
+| 测试编号 | `P020` |
+| 测试函数 | `FlightProductServiceTest.deductsStockAtomically` |
+| 输入数据 | 商品 ID `1`，扣减数量 `2`。 |
+| 前置条件 | Mock `JdbcTemplate` 返回原子更新成功行数。 |
+| 预期输出 | 调用 `adjustInventory(1,2,true)` 并返回 `true`。 |
+| 实际输出 | 参数、扣减方向和返回值均正确，测试通过。 |
 
-```powershell
-cd D:\Code\Lightmark\msa
-mvn -pl product-service -am test
-```
+### P030
+| 测试名称 | 酒店搜索与房型字段映射 |
+| --- | --- |
+| 测试编号 | `P030` |
+| 测试函数 | `HotelProductServiceTest.mapsHotelSearchAndRooms` |
+| 输入数据 | 酒店 `2`，名称“上海酒店”，最低价 `300`，可退款。 |
+| 前置条件 | Mock 返回完整酒店扩展信息和房型记录。 |
+| 预期输出 | ID、名称、价格、取消政策正确映射到 DTO。 |
+| 实际输出 | 所有字段与领域记录一致，测试通过。 |
 
-结果：`BUILD SUCCESS`。
+### P040
+| 测试名称 | 火车站点选项与缺少站点参数 |
+| --- | --- |
+| 测试编号 | `P040` |
+| 测试函数 | `TrainProductServiceTest.returnsOptionsAndRejectsMissingStations` |
+| 输入数据 | 站点选项请求；缺少出发站和到达站的搜索请求。 |
+| 前置条件 | Mock 可返回站点选项。 |
+| 预期输出 | 响应包含 `stations`；缺参搜索不抛异常并返回空列表。 |
+| 实际输出 | 选项结构正确，缺参返回空列表，测试通过。 |
 
-| 测试类 | 类型 | 用例数 | 通过 | 失败 | 跳过 |
-| --- | --- | ---: | ---: | ---: | ---: |
-| `FlightProductServiceTest` | Service 单元测试 | 3 | 3 | 0 | 0 |
-| `HotelProductServiceTest` | Service 单元测试 | 1 | 1 | 0 | 0 |
-| `TrainProductServiceTest` | Service 单元测试 | 1 | 1 | 0 | 0 |
-| `VacationProductServiceTest` | Service 单元测试 | 1 | 1 | 0 | 0 |
-| `InternalProductControllerTest` | Controller 单元测试 | 2 | 2 | 0 | 0 |
-| `ProductControllerIntegrationTest` | MockMvc API 集成测试 | 6 | 6 | 0 | 0 |
-| **product-service 合计** |  | **14** | **14** | **0** | **0** |
+### P050
+| 测试名称 | 度假产品目的地筛选 |
+| --- | --- |
+| 测试编号 | `P050` |
+| 测试函数 | `VacationProductServiceTest.filtersByDestination` |
+| 输入数据 | 产品目的地“三亚”；查询“三亚”和“北京”。 |
+| 前置条件 | Mock 返回 1 条三亚产品。 |
+| 预期输出 | 三亚返回 1 条，北京返回空列表。 |
+| 实际输出 | 两种条件结果均符合预期，测试通过。 |
 
-Maven reactor 同时执行了依赖模块 `lightmark-common` 的 4 个测试，结果为 4/4 通过。
+### P060
+| 测试名称 | 内部库存负增量映射为扣减 |
+| --- | --- |
+| 测试编号 | `P060` |
+| 测试函数 | `InternalProductControllerTest.mapsNegativeDeltaToStockDeduction` |
+| 输入数据 | 有效 JWT；`id=42`、`delta=-2`。 |
+| 前置条件 | JWT 密钥不少于 32 字节，库存服务为 Mock。 |
+| 预期输出 | 请求成功并调用 `adjustInventory(42,2,true)`。 |
+| 实际输出 | 鉴权成功，调用参数正确，测试通过。 |
 
-## 5. 逐条测试用例
+### P070
+| 测试名称 | 内部库存正增量映射为释放 |
+| --- | --- |
+| 测试编号 | `P070` |
+| 测试函数 | `InternalProductControllerTest.mapsPositiveDeltaToStockRelease` |
+| 输入数据 | 有效 JWT；`id=42`、`delta=3`。 |
+| 前置条件 | 内部接口鉴权通过，库存服务为 Mock。 |
+| 预期输出 | 调用 `adjustInventory(42,3,false)`。 |
+| 实际输出 | 正确映射为释放库存，测试通过。 |
 
-| 编号 | 测试方法 | 输入/场景 | 预期结果 | 结果 |
-| --- | --- | --- | --- | --- |
-| TC-01 | `FlightProductServiceTest.searchFiltersAndPaginatesFlights` | 两条航班记录，出发城市 `BJS`，`page=1,size=1` | 过滤后总数为 2，仅返回 1 条；按价格升序返回价格 100 的航班 | 通过 |
-| TC-02 | `FlightProductServiceTest.priceCalendarReturnsAvailability` | 起始日期 `2026-09-01`，查询 2 天；存在 9 月 1 日航班 | 返回 2 天日历；9 月 1 日可用，无航班日期不可用 | 通过 |
-| TC-03 | `FlightProductServiceTest.deductsStockAtomically` | 商品 ID `1` 扣减数量 2 | 执行带库存条件的原子更新并返回 `true` | 通过 |
-| TC-04 | `HotelProductServiceTest.mapsHotelSearchAndRooms` | 酒店 ID `2`、名称“上海酒店”、最低价 300、可退款 | 正确映射酒店名称、价格和取消政策 | 通过 |
-| TC-05 | `TrainProductServiceTest.returnsOptionsAndRejectsMissingStations` | 查询缺少出发站和到达站；访问站点选项 | 选项包含 `stations`；缺少站点时搜索返回空列表 | 通过 |
-| TC-06 | `VacationProductServiceTest.filtersByDestination` | 产品目的地为“三亚” | 查询“三亚”返回 1 条；查询“北京”返回空列表 | 通过 |
-| TC-07 | `InternalProductControllerTest.mapsNegativeDeltaToStockDeduction` | 内部请求 `id=42, delta=-2` | 转换为 `adjustInventory(42,2,true)` | 通过 |
-| TC-08 | `InternalProductControllerTest.mapsPositiveDeltaToStockRelease` | 内部请求 `id=42, delta=3` | 转换为 `adjustInventory(42,3,false)` | 通过 |
-| TC-09 | `ProductControllerIntegrationTest.flightSearchAndDetailExposeCommonResponse` | GET 航班搜索和详情接口 | 返回统一响应、分页列表和详情；查询参数正确传递 | 通过 |
-| TC-10 | `ProductControllerIntegrationTest.genericAndAdminProductEndpointsDelegate` | 通用产品列表/详情；管理员列表、新增、改价、删除 | 所有路由成功；改价调用参数正确 | 通过 |
-| TC-11 | `ProductControllerIntegrationTest.hotelRoomAndVacationEndpointsSerializeDomainRecords` | 酒店列表、房型日期查询、度假列表 | DTO 字段正确序列化，日期参数正确绑定 | 通过 |
-| TC-12 | `ProductControllerIntegrationTest.trainEndpointsAcceptJsonAndExposeOptions` | 火车搜索 JSON、站点选项、价格日历 | 请求体正确绑定，返回车次、站点和日历数据 | 通过 |
-| TC-13 | `ProductControllerIntegrationTest.browsingAndStockInternalEndpointsUseExpectedPayloads` | 带 JWT 调用库存扣减/释放、浏览记录写入/查询 | 鉴权成功，库存 delta 映射正确，浏览记录参数完整 | 通过 |
-| TC-14 | `ProductControllerIntegrationTest.invalidInternalStockPayloadReturnsBadRequest` | 商品 ID 为 `not-a-number` | 返回 HTTP 400 和错误码 400，不调用库存服务 | 通过 |
+### P080
+| 测试名称 | 航班搜索与详情 API 统一响应 |
+| --- | --- |
+| 测试编号 | `P080` |
+| 测试函数 | `ProductControllerIntegrationTest.flightSearchAndDetailExposeCommonResponse` |
+| 输入数据 | MockMvc GET 搜索和详情请求，包含城市、日期、分页和详情 ID。 |
+| 前置条件 | `@WebMvcTest` 加载控制器，服务层为 Mock。 |
+| 预期输出 | HTTP 200、统一成功响应、分页完整、详情 ID 与路径一致。 |
+| 实际输出 | 状态、响应结构、列表、详情和服务参数均正确，测试通过。 |
 
-## 6. 测试覆盖范围
+### P090
+| 测试名称 | 通用产品与管理员产品接口 |
+| --- | --- |
+| 测试编号 | `P090` |
+| 测试函数 | `ProductControllerIntegrationTest.genericAndAdminProductEndpointsDelegate` |
+| 输入数据 | 通用列表/详情；管理员列表、新增、改价、删除请求。 |
+| 前置条件 | 管理员安全上下文和产品服务 Mock 已配置。 |
+| 预期输出 | 路由全部成功，改价 ID 和价格准确传递。 |
+| 实际输出 | 所有路由委托正确，改价参数无变形，测试通过。 |
 
-### 4.1 航班产品
+### P100
+| 测试名称 | 酒店房型与度假 API 序列化 |
+| --- | --- |
+| 测试编号 | `P100` |
+| 测试函数 | `ProductControllerIntegrationTest.hotelRoomAndVacationEndpointsSerializeDomainRecords` |
+| 输入数据 | 酒店列表、酒店 `2` 房型查询（`checkIn`、`checkOut`）、度假列表。 |
+| 前置条件 | Mock 返回酒店、房型和度假记录。 |
+| 预期输出 | 三个接口成功，日期正确绑定，DTO 字段完整。 |
+| 实际输出 | 三个接口均返回预期响应，测试通过。 |
 
-- 航班搜索：出发城市筛选、价格排序、分页。
-- 航班详情查询。
-- 价格日历可用性和最低价格响应。
-- 库存原子扣减 SQL 条件（库存不足时不应成功）。
+### P110
+| 测试名称 | 火车 JSON 搜索、站点选项与价格日历 API |
+| --- | --- |
+| 测试编号 | `P110` |
+| 测试函数 | `ProductControllerIntegrationTest.trainEndpointsAcceptJsonAndExposeOptions` |
+| 输入数据 | 火车搜索 JSON、站点选项请求、价格日历请求。 |
+| 前置条件 | Mock 火车服务配置三类返回值。 |
+| 预期输出 | JSON 正确绑定；三类接口 HTTP 200、成功 code、结构完整。 |
+| 实际输出 | 请求解析和三类响应均正确，测试通过。 |
 
-### 4.2 酒店与房型
+### P120
+| 测试名称 | 浏览记录与库存内部接口负载 |
+| --- | --- |
+| 测试编号 | `P120` |
+| 测试函数 | `ProductControllerIntegrationTest.browsingAndStockInternalEndpointsUseExpectedPayloads` |
+| 输入数据 | Bearer JWT；浏览记录写入/查询；库存负、正增量请求。 |
+| 前置条件 | JWT 签名有效，相关服务均为 Mock。 |
+| 预期输出 | 鉴权成功，浏览记录字段完整，库存方向分别为扣减和释放。 |
+| 实际输出 | 鉴权、参数校验和委托调用均正确，测试通过。 |
 
-- 酒店列表查询及分页响应。
-- 房型查询参数 `checkIn`、`checkOut` 绑定。
-- 房型价格、入住晚数和总价字段 JSON 序列化。
+### P121
+| 测试名称 | 非法内部库存负载返回 400 |
+| --- | --- |
+| 测试编号 | `P121` |
+| 测试函数 | `ProductControllerIntegrationTest.invalidInternalStockPayloadReturnsBadRequest` |
+| 输入数据 | 商品 ID 为 `not-a-number` 的内部库存请求。 |
+| 前置条件 | 请求到达控制器，ID 类型校验在控制器层执行。 |
+| 预期输出 | HTTP 400、错误码 400，库存服务不被调用。 |
+| 实际输出 | 返回 HTTP 400、错误码 400，库存服务调用次数为 0，测试通过。 |
 
-### 4.3 火车票
+## 三、测试隔离与限制
 
-- JSON 请求体火车票搜索。
-- 站点选项接口。
-- 价格日历接口。
-- 缺少站点参数时的服务层降级为空结果。
+Service 测试使用 Mockito 模拟 `JdbcTemplate`、`RestClient` 和外部数据，不连接真实 MySQL；Controller 测试使用 `@WebMvcTest + MockMvc`。真实数据库迁移、跨服务网络和并发库存压力仍需在 MSA 容器或目标环境验收。
 
-### 4.4 度假产品
+## 四、自动化测试产物
 
-- 目的地筛选。
-- 度假产品列表及详情 DTO 响应。
+JUnit XML：`msa/product-service/target/surefire-reports/TEST-*.xml`。Maven 文本报告：`msa/product-service/target/surefire-reports/*.txt`。
 
-### 4.5 通用产品与管理员接口
+## 五、最终结论
 
-- `/api/products` 产品列表。
-- `/api/products/{id}` 产品详情。
-- `/api/admin/products` 列表和新增。
-- 产品价格修改、删除。
-
-### 4.6 浏览记录与订单库存适配
-
-- 浏览记录写入和分页查询。
-- 内部库存接口 `delta=-N` 映射为扣减库存。
-- 内部库存接口 `delta=+N` 映射为释放库存。
-- 非法产品 ID 返回 `400`。
-
-### 4.7 JWT 内部接口保护
-
-集成测试加载 `JwtConfig` 和 `ProductServiceSecurityConfig`，使用测试密钥生成 Bearer JWT，验证内部库存接口在鉴权上下文下可正常访问。测试密钥仅用于测试，不写入生产配置。
-
-## 7. 测试数据与隔离
-
-- Service 测试使用 Mockito 模拟 `JdbcTemplate`、`RestClient` 和外部数据。
-- Controller 集成测试使用 `@WebMvcTest` + MockMvc，不启动真实数据库连接。
-- 产品服务内部接口使用长度不少于 32 字节的测试 JWT 密钥。
-- 每个测试不依赖执行顺序，不写入 `database/lightmark.sql`。
-
-## 8. 测试产物
-
-Maven Surefire 报告目录：
-
-```text
-msa/product-service/target/surefire-reports
-```
-
-主要测试代码：
-
-- `msa/product-service/src/test/java/top/ortus/lightmark/product/service/`
-- `msa/product-service/src/test/java/top/ortus/lightmark/product/controller/InternalProductControllerTest.java`
-- `msa/product-service/src/test/java/top/ortus/lightmark/product/controller/ProductControllerIntegrationTest.java`
-
-## 9. 尚未覆盖的现场验收项
-
-以下内容需要在部署环境或真实依赖服务中补充验证，不能由本地 MockMvc 测试替代：
-
-1. 产品服务连接实际 `lightmark_product` MySQL 并执行 Flyway 迁移。
-2. 订单服务携带服务 JWT 调用产品详情、扣库存和释放库存的真实 HTTP 链路。
-3. 真实数据库并发下的库存扣减、库存不足和事务回滚。
-4. 火车票 MCP 服务可用时的直达、中转和价格日历数据。
-5. Kubernetes 中产品服务的健康检查、Secret 注入和服务发现。
-
-## 10. 相关提交
-
-- `328844b`：订单库存接口适配
-- `f7d6a35`：产品服务 API 集成测试
-- `97e9344`：订单调用产品服务增加 JWT
-- `a049ed4`：最新 MSA 部署配置合并
-
-## 11. 结论
-
-`product-service` 当前自动化测试全部通过，接口层和订单库存适配契约已验证。服务具备进入真实数据库和跨服务联调阶段的条件；部署验收和真实并发库存测试仍需在目标环境执行。
+product-service 本轮 14 个测试全部通过，构建成功。航班、酒店/房型、火车、度假、通用产品、管理员、浏览记录、库存适配及 JWT 内部接口契约均已验证。

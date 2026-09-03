@@ -260,12 +260,7 @@ const destinations = [
   display: flex;
   align-items: center;
   overflow: hidden;
-  background: linear-gradient(
-    135deg,
-    var(--navy-900) 0%,
-    var(--navy-700) 60%,
-    var(--navy-600) 100%
-  );
+  background: var(--gold-300);
 }
 
 .hero-bg {
@@ -341,7 +336,7 @@ const destinations = [
   font-family: var(--font-heading);
   font-size: clamp(40px, 5.5vw, 68px);
   font-weight: 700;
-  color: var(--white);
+  color: var(--navy-900);
   line-height: 1.1;
   letter-spacing: -0.5px;
 }
@@ -355,7 +350,7 @@ const destinations = [
 
 .hero-desc {
   font-size: clamp(16px, 1.2vw, 18px);
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(10, 22, 40, 0.72);
   margin-top: 20px;
   line-height: 1.7;
   max-width: 460px;
@@ -374,13 +369,13 @@ const destinations = [
 }
 
 .btn-hero.btn-secondary {
-  color: rgba(255, 255, 255, 0.8);
-  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--navy-900);
+  border-color: rgba(10, 22, 40, 0.28);
 }
 
 .btn-hero.btn-secondary:hover {
-  border-color: var(--gold-500);
-  color: var(--gold-400);
+  border-color: var(--navy-900);
+  color: var(--navy-900);
 }
 
 .btn-arrow {
@@ -410,12 +405,12 @@ const destinations = [
   position: absolute;
   width: 260px;
   padding: 20px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.48);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.64);
   border-radius: var(--radius-lg);
-  color: var(--white);
+  color: var(--navy-900);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -427,7 +422,7 @@ const destinations = [
 }
 .stack-card span {
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(10, 22, 40, 0.68);
 }
 .stack-card strong {
   font-size: 20px;
@@ -453,7 +448,7 @@ const destinations = [
 
 .stack-card:hover {
   transform: translateY(-8px) rotate(0deg);
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.72);
 }
 
 /* ── Quick Search ── */
