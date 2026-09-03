@@ -24,7 +24,7 @@ public class ObjectStorageService {
 
     private static final DateTimeFormatter OBJECT_TIME = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
     private static final String COMMUNITY_IMAGE_BASE_URL =
-            "https://objectstorage.ap-tokyo-1.oraclecloud.com/p/DrCIcuZzY23irWZEg-Z28KiNqiaYAhxmr9dHddU1uS-GuopaYi6TCQ7Ok7lRCU0C/n/nrrguvtqppqi/b/ortus-bucket/o/";
+            "https://objectstorage.ap-tokyo-1.oraclecloud.com/p/gpXawfcE00rWWXvf7bRiwadiSeQjLY_ceX-7BGAuQpj0ayMJofdnp5mLD2cFzdNV/n/nrrguvtqppqi/b/ortus-bucket/o/";
 
     private final HttpClient httpClient;
     private final String baseUrl;

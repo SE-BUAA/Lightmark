@@ -54,7 +54,7 @@ public class AIClient {
                             Map.of("role", "system", "content", "你是拾光旅行的 AI 助手。请严格按照用户要求输出，涉及结构化结果时必须返回可解析 JSON。"),
                             Map.of("role", "user", "content", prompt)
                     },
-                    "temperature", 0.7
+                    "temperature", 0.0
             );
             String response = restTemplate.postForObject(apiUrl, new HttpEntity<>(body, headers), String.class);
             return StringUtils.hasText(response) ? Optional.of(response) : Optional.empty();

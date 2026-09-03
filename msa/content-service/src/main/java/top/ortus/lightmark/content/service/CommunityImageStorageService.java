@@ -15,7 +15,7 @@ import java.util.UUID;
 @Service
 public class CommunityImageStorageService {
     public static final String COMMUNITY_IMAGE_BASE_URL =
-            "https://objectstorage.ap-tokyo-1.oraclecloud.com/p/DrCIcuZzY23irWZEg-Z28KiNqiaYAhxmr9dHddU1uS-GuopaYi6TCQ7Ok7lRCU0C/n/nrrguvtqppqi/b/ortus-bucket/o/";
+            "https://objectstorage.ap-tokyo-1.oraclecloud.com/p/gpXawfcE00rWWXvf7bRiwadiSeQjLY_ceX-7BGAuQpj0ayMJofdnp5mLD2cFzdNV/n/nrrguvtqppqi/b/ortus-bucket/o/";
 
     private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
 

@@ -36,7 +36,7 @@ public class ContentAiService {
         String fallback = "AI 服务暂时不可用，请稍后重试。你的问题是：" + message;
         if (!StringUtils.hasText(key)) return Map.of("content", fallback, "model", model, "degraded", true);
         try {
-            Map<String, Object> body = Map.of("model", model, "messages", List.of(
+            Map<String, Object> body = Map.of("model", model, "temperature", 0.0, "messages", List.of(
                     Map.of("role", "system", "content", StringUtils.hasText(systemPrompt) ? systemPrompt : "你是拾光旅行助手。"),
                     Map.of("role", "user", "content", message)));
             HttpRequest request = HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(8))
