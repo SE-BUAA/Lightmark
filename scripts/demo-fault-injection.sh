@@ -72,6 +72,8 @@ except Exception: sys.exit(2)
 def walk(d,path):
     for k in path.split("."):
         k=int(k) if k.isdigit() else k
+        if isinstance(d,list) and isinstance(k,int) and 0 <= k < len(d):
+            d=d[k]; continue
         if not isinstance(d,dict) or k not in d: return None
         d=d[k]
     return d
