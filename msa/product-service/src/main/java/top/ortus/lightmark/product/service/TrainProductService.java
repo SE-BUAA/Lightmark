@@ -9,6 +9,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import top.ortus.lightmark.product.dto.TrainTicketDTO;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
@@ -31,6 +34,9 @@ import java.util.concurrent.atomic.AtomicReference;
 public class TrainProductService {
 
     private static final String SESSION_HEADER = "Mcp-Session-Id";
+
+    /** station.csv 站名缓存（懒加载，线程不安全但只赋值一次同一内容，可接受） */
+    private static volatile List<String> STATIONS;
 
     private final RestClient client;
     private final ObjectMapper mapper;
@@ -79,9 +85,37 @@ public class TrainProductService {
     }
 
     public Map<String, Object> options() {
-        return Map.of("stations", List.of("北京", "上海", "广州", "深圳", "杭州", "南京", "成都", "武汉"),
-                "trainTypes", List.of("高铁", "动车", "普速"),
-                "seatTypes", List.of("商务座", "一等座", "二等座", "软卧", "硬卧", "硬座"));
+        // 与单体 /api/trains/options 对齐：startStations/endStations/dates
+        // （前端 TrainsView 依赖这三个键名；站名来自 station.csv 第 2 列，dates 为今天起 180 天）
+        List<String> stations = stations();
+        List<String> dates = new ArrayList<>();
+        for (int i = 0; i < 180; i++) {
+            dates.add(LocalDate.now().plusDays(i).toString());
+        }
+        return Map.of("startStations", stations, "endStations", stations, "dates", dates);
+    }
+
+    /** 读取 classpath station.csv（格式: 简码,站名,...），返回第 2 列站名，保持文件顺序。 */
+    private static List<String> stations() {
+        if (STATIONS != null) {
+            return STATIONS;
+        }
+        List<String> names = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+                TrainProductService.class.getClassLoader().getResourceAsStream("station.csv"),
+                StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] columns = line.split(",");
+                if (columns.length > 1 && !columns[1].isBlank()) {
+                    names.add(columns[1].trim());
+                }
+            }
+        } catch (Exception ignored) {
+            // 站点文件缺失时返回空列表，页面下拉为空但不崩溃
+        }
+        STATIONS = names;
+        return names;
     }
 
     public TrainTicketDTO detail(String id) {
