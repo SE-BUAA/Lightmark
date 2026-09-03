@@ -341,7 +341,7 @@ const destinations = [
   font-family: var(--font-heading);
   font-size: clamp(40px, 5.5vw, 68px);
   font-weight: 700;
-  color: var(--navy-900);
+  color: var(--white);
   line-height: 1.1;
   letter-spacing: -0.5px;
 }
@@ -355,7 +355,7 @@ const destinations = [
 
 .hero-desc {
   font-size: clamp(16px, 1.2vw, 18px);
-  color: rgba(10, 22, 40, 0.72);
+  color: rgba(255, 255, 255, 0.6);
   margin-top: 20px;
   line-height: 1.7;
   max-width: 460px;
@@ -374,13 +374,13 @@ const destinations = [
 }
 
 .btn-hero.btn-secondary {
-  color: var(--navy-900);
-  border-color: rgba(10, 22, 40, 0.28);
+  color: rgba(255, 255, 255, 0.8);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 .btn-hero.btn-secondary:hover {
-  border-color: var(--navy-900);
-  color: var(--navy-900);
+  border-color: var(--gold-500);
+  color: var(--gold-400);
 }
 
 .btn-arrow {
@@ -410,12 +410,12 @@ const destinations = [
   position: absolute;
   width: 260px;
   padding: 20px;
-  background: rgba(255, 255, 255, 0.48);
+  background: rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.64);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-lg);
-  color: var(--navy-900);
+  color: var(--white);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -427,7 +427,7 @@ const destinations = [
 }
 .stack-card span {
   font-size: 14px;
-  color: rgba(10, 22, 40, 0.68);
+  color: rgba(255, 255, 255, 0.6);
 }
 .stack-card strong {
   font-size: 20px;
@@ -453,7 +453,7 @@ const destinations = [
 
 .stack-card:hover {
   transform: translateY(-8px) rotate(0deg);
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 /* ── Quick Search ── */
