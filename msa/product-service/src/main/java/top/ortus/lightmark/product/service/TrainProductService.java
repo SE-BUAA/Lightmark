@@ -62,7 +62,8 @@ public class TrainProductService {
             args.put("middle_station", "");
         }
         Map<String, Object> response = call(transfer ? "query-transfer" : "query-tickets", args);
-        return tickets(response);
+        Map<String, Object> priceResponse = transfer ? Map.of() : call("query-ticket-price", args);
+        return tickets(response, pricesByTrainCode(priceResponse));
     }
 
     public List<Map<String, Object>> calendar(Map<String, Object> body) {
@@ -219,7 +220,11 @@ public class TrainProductService {
 
     // ==================== 结果映射 ====================
 
-    private List<TrainTicketDTO> tickets(Map<String, Object> response) {
+    List<TrainTicketDTO> tickets(Map<String, Object> response) {
+        return tickets(response, Map.of());
+    }
+
+    private List<TrainTicketDTO> tickets(Map<String, Object> response, Map<String, Map<String, Double>> pricesByTrainCode) {
         Object rows = response.get("tickets");
         if (!(rows instanceof List<?>)) {
             rows = response.get("trains");
@@ -232,16 +237,36 @@ public class TrainProductService {
             if (row instanceof Map<?, ?> m) {
                 Map<String, Object> x = new LinkedHashMap<>();
                 m.forEach((k, v) -> x.put(String.valueOf(k), v));
+                Map<String, Integer> seats = normalizeSeats(x.get("seats"));
+                if (seats.isEmpty()) {
+                    seats = normalizeSeats(x.get("seat_info"));
+                }
+                int stock = integer(x.get("stock"));
+                if (stock <= 0) {
+                    stock = seats.values().stream().mapToInt(Integer::intValue).sum();
+                }
+                // Normalize MCP time names to the fields consumed by the frontend.
+                if (!x.containsKey("depart_time")) x.put("depart_time", x.get("start_time"));
+                if (!x.containsKey("arrive_time")) x.put("arrive_time", x.get("arrival_time"));
+                Map<String, Double> prices = new LinkedHashMap<>(pricesByTrainCode.getOrDefault(
+                        String.valueOf(x.getOrDefault("train_code", x.getOrDefault("train_no", ""))), Map.of()));
+                if (prices.isEmpty()) {
+                    prices.putAll(defaultPrices(seats.keySet(), String.valueOf(x.getOrDefault("train_no", ""))));
+                }
+                Double price = number(x.get("price"));
+                if (price == null || price <= 0) {
+                    price = prices.values().stream().filter(v -> v != null && v > 0).min(Double::compareTo).orElse(null);
+                }
                 out.add(new TrainTicketDTO(
                         String.valueOf(x.getOrDefault("id", x.getOrDefault("train_no", ""))),
                         String.valueOf(x.getOrDefault("name", x.getOrDefault("train_no", ""))),
-                        number(x.get("price")),
-                        integer(x.get("stock")),
+                        price,
+                        stock,
                         integer(x.get("soldCount")),
                         List.of(),
                         x,
-                        Map.of(),
-                        Map.of()));
+                        seats,
+                        prices));
             }
         }
         return out;
@@ -263,6 +288,81 @@ public class TrainProductService {
         try {
             return x == null ? 0 : Integer.valueOf(x.toString());
         } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private Map<String, Map<String, Double>> pricesByTrainCode(Map<String, Object> response) {
+        Object rows = response.get("data");
+        if (!(rows instanceof List<?> list)) return Map.of();
+        Map<String, Map<String, Double>> result = new LinkedHashMap<>();
+        for (Object row : list) {
+            if (!(row instanceof Map<?, ?> raw)) continue;
+            Object codeValue = raw.get("train_code");
+            if (codeValue == null) codeValue = raw.get("train_no");
+            String code = String.valueOf(codeValue == null ? "" : codeValue);
+            if (!code.isBlank()) result.put(code, normalizePrices(raw.get("prices")));
+        }
+        return result;
+    }
+
+    private Map<String, Double> defaultPrices(Iterable<String> seats, String trainNo) {
+        boolean conventional = trainNo.matches("[KTZY].*");
+        Map<String, Double> prices = new LinkedHashMap<>();
+        for (String seat : seats) {
+            double value = switch (seat) {
+                case "商务座" -> 900.0;
+                case "一等座" -> conventional ? 0.0 : 480.0;
+                case "二等座" -> conventional ? 0.0 : 300.0;
+                case "软卧" -> 420.0;
+                case "硬卧" -> 270.0;
+                case "硬座" -> 150.0;
+                case "无座" -> 150.0;
+                default -> 0.0;
+            };
+            if (value > 0) prices.put(seat, value);
+        }
+        return prices;
+    }
+
+    private Map<String, Double> normalizePrices(Object value) {
+        if (!(value instanceof Map<?, ?> raw)) return Map.of();
+        Map<String, Double> prices = new LinkedHashMap<>();
+        raw.forEach((key, item) -> {
+            double price = number(item) == null ? 0 : number(item);
+            if (price > 0) prices.put(String.valueOf(key), price);
+        });
+        return prices;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Integer> normalizeSeats(Object value) {
+        if (!(value instanceof Map<?, ?> raw)) {
+            return Map.of();
+        }
+        Map<String, Integer> seats = new LinkedHashMap<>();
+        Map<String, String> names = Map.of(
+                "business", "商务座", "first_class", "一等座", "second_class", "二等座",
+                "soft_sleeper", "软卧", "hard_sleeper", "硬卧", "hard_seat", "硬座",
+                "no_seat", "无座");
+        raw.forEach((key, item) -> {
+            String seat = names.getOrDefault(String.valueOf(key), String.valueOf(key));
+            int count = seatCount(item);
+            if (count > 0) {
+                seats.put(seat, count);
+            }
+        });
+        return seats;
+    }
+
+    private int seatCount(Object value) {
+        if (value == null) return 0;
+        String text = String.valueOf(value).trim();
+        if (text.isBlank() || "无".equals(text) || "--".equals(text) || "候补".equals(text) || "售完".equals(text)) return 0;
+        if ("有".equals(text) || text.contains("充足")) return 20;
+        try {
+            return Math.max(0, Integer.parseInt(text));
+        } catch (NumberFormatException ignored) {
             return 0;
         }
     }
