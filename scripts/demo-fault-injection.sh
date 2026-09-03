@@ -140,7 +140,6 @@ preflight() {
 # ---------- 场景 A:user-service 下线 -> 备用结果 + 隔离 ----------
 scenario_a() {
   say "========== 场景 A:停 user-service —— 备用结果(昵称降级)+ 故障隔离 =========="
-  note "答辩口径:社区展示调用 user-service 取昵称,1s 连接/2s 读超时,失败降级默认昵称'旅行用户'"
 
   # A0 基线:找一个有作者的游记
   local pid="" base_nick=""
@@ -206,8 +205,6 @@ scenario_a() {
 # ---------- 场景 B:product-service 下线 -> 重试 + 熔断 + 恢复自愈 ----------
 scenario_b() {
   say "========== 场景 B:停 product-service —— 超时重试 + 熔断 + 自愈 =========="
-  note "答辩口径:order-service 下单/预览前调用 product 内部接口;配置:3s 超时、重试 2 次(间隔 300ms)、"
-  note "        熔断 10 窗口内 5 次失败(50%)即打开 10s;降级文案'服务繁忙，请稍后再试'(503)"
 
   # B0 基线:拿到真实机票 productId,预览成功
   local pid=""
@@ -276,7 +273,6 @@ scenario_b() {
 # ---------- 场景 C:content-service 下线 -> 故障隔离 ----------
 scenario_c() {
   say "========== 场景 C:停 content-service —— 故障隔离(社区域故障不扩散) =========="
-  note "答辩口径:各服务独立 Deployment,任一服务下线只影响自身域,不级联崩溃"
 
   curl_req "$BASE_URL/api/posts?page=1&size=1"
   [ "$CURL_CODE" = "200" ] && ok "基线:社区列表 200" || note "基线社区 HTTP $CURL_CODE"
