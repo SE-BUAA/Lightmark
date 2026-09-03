@@ -106,6 +106,16 @@ PY
 }
 
 # ---------- 服务启停(HPA 感知,可安全恢复) ----------
+# 冻结/解冻 Java 进程:不依赖 PID=1(新镜像 Java 可能由 tini 等包装),
+# 通过 /proc/*/cmdline 定位真正的 java 进程(模式经环境变量传入,避免自匹配)
+svc_freeze() {  # $1=svc;成功输出 FROZEN-<pid> 并返回 0
+  kubectl exec -n "$NS" deploy/"$1" -- env APP_PAT=app.jar sh -c \
+    'for p in /proc/[0-9]*; do c=$(tr "\0" " " < "$p/cmdline" 2>/dev/null); case "$c" in *"$APP_PAT"*) kill -STOP "${p#/proc/}" 2>/dev/null && echo FROZEN-"${p#/proc/}"; exit 0;; esac; done; echo NOJAVA' 2>/dev/null | grep -E 'FROZEN-[0-9]+'
+}
+svc_unfreeze() {  # $1=svc;成功返回 0
+  kubectl exec -n "$NS" deploy/"$1" -- env APP_PAT=app.jar sh -c \
+    'for p in /proc/[0-9]*; do c=$(tr "\0" " " < "$p/cmdline" 2>/dev/null); case "$c" in *"$APP_PAT"*) kill -CONT "${p#/proc/}" 2>/dev/null && echo RESUMED-"${p#/proc/}"; exit 0;; esac; done; echo NOJAVA' 2>/dev/null | grep -q 'RESUMED-[0-9]+'
+}
 svc_down() {  # $1=service
   local svc="$1"
   say "停止服务 $svc(暂停 HPA -> 缩容到 0)"
@@ -144,7 +154,7 @@ restore_all() {  # 退出时兜底恢复现场
   for f in "$STATEDIR"/freeze-*; do
     [ -f "$f" ] || continue
     local svc=${f##*freeze-}
-    kubectl exec -n "$NS" deploy/"$svc" -- kill -CONT 1 >/dev/null 2>&1
+    svc_unfreeze "$svc" >/dev/null 2>&1
     kubectl rollout status deployment/"$svc" -n "$NS" --timeout=150s >/dev/null 2>&1
     note "退出兜底:已解冻 $svc"
   done
@@ -335,16 +345,30 @@ PY
   pause
 
   # 故障注入:优先冻结 Java 进程(SIGSTOP)——Pod 保留、TCP 可连但无响应,
-  # 让订单侧真实走到 3s 读超时;exec 不可用时回退为暂停 HPA + 缩容到 0
+  # 让订单侧真实走到 3s 读超时;冻结失败(找不到进程/未真正冻结)时回退为暂停 HPA+缩容
   say "故障注入:冻结 product-service 的 Java 进程(kill -STOP,保留 Pod 制造 3s 超时)"
   touch "$STATEDIR/down-product-service"
-  if kubectl exec -n "$NS" deploy/product-service -- kill -STOP 1 >/dev/null 2>&1; then
-    FREEZE=1
-    touch "$STATEDIR/freeze-product-service"
-    ok "已冻结(PID 1);订单侧请求将先经历 3s 读超时+重试,熔断生效后快速失败"
-    sleep 5
+  local frozen_pid=""
+  frozen_pid=$(svc_freeze product-service)
+  if [ -n "$frozen_pid" ]; then
+    # 验证确已冻结:2 次 1s 探测都应无响应(000/超时);若仍 200 说明冻结失败
+    local alive=0 k code2
+    for k in 1 2; do
+      code2=$(curl -s --max-time 1 -o /dev/null -w '%{http_code}' "$BASE_URL/api/flights/search?page=1&size=1" 2>/dev/null)
+      [ "$code2" = "200" ] && alive=$((alive+1))
+    done
+    if [ "$alive" = "0" ]; then
+      FREEZE=1
+      touch "$STATEDIR/freeze-product-service"
+      ok "已冻结 Java 进程($frozen_pid),探测无响应;订单侧将先经历 3s 读超时,熔断生效后快速失败"
+      sleep 3
+    else
+      note "冻结后探测仍 $alive/2 次 200(进程未真正冻结),回退:暂停 HPA 并缩容到 0"
+      svc_unfreeze product-service >/dev/null 2>&1
+      svc_down product-service || return 1
+    fi
   else
-    note "exec/kill 不可用,回退:暂停 HPA 并缩容到 0"
+    note "未定位到 Java 进程,回退:暂停 HPA 并缩容到 0"
     svc_down product-service || return 1
   fi
 
@@ -384,8 +408,11 @@ PY
   # 恢复:解冻(秒级,无冷启动);回退模式则走扩容等待
   if [ "$FREEZE" = "1" ]; then
     say "恢复:解冻 product-service(kill -CONT,无需冷启动)"
-    kubectl exec -n "$NS" deploy/product-service -- kill -CONT 1 >/dev/null 2>&1 \
-      || note "解冻失败(可能已被探针重启),继续用 rollout 兜底"
+    if svc_unfreeze product-service; then
+      ok "已解冻 Java 进程"
+    else
+      note "解冻未确认(可能已被探针重启),继续用 rollout 兜底"
+    fi
     kubectl rollout status deployment/product-service -n "$NS" --timeout=150s >/dev/null 2>&1 \
       && ok "product-service 探针已恢复" || note "rollout 状态未知"
     rm -f "$STATEDIR/freeze-product-service"
