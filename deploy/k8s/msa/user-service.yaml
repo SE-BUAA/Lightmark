@@ -9,6 +9,14 @@ metadata:
   labels:
     app: lightmark
     tier: user-service
+  # 会话粘滞（cookie 亲和）：验证码/登录依赖 HttpSession（进程内存），
+  # user-service 扩到多副本时，同一浏览器必须始终命中同一 Pod，
+  # 否则验证码存在 Pod A、登录打到 Pod B 会报 captcha expired。
+  # Traefik kubernetes-ingress provider 读取 Service 注解实现（v2.6+）。
+  # cookie 不加 Secure 标记，http/https 入口均可使用；如需仅 https 可加 *_cookie.secure: "true"
+  annotations:
+    traefik.ingress.kubernetes.io/service.sticky.cookie: "true"
+    traefik.ingress.kubernetes.io/service.sticky.cookie.name: "lm_user_session"
 spec:
   type: ClusterIP
   selector:
