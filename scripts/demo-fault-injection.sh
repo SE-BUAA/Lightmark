@@ -130,10 +130,31 @@ preflight() {
   say "预检:kubectl 集群状态"
   kubectl get nodes 2>/dev/null | tail -n +2 | head -3 || { bad "kubectl 不可用,请在服务器执行"; exit 1; }
   kubectl get deploy,hpa -n "$NS" 2>/dev/null | grep -E 'NAME|service' || note "未找到 $NS 下的 Deployment,请检查命名空间"
+
+  # 小规格节点上 Spring Boot 冷启动约 50~90s,刚部署/重启后探针会先失败,
+  # 这里轮询等待 4 个业务服务全部 Ready(已就绪时秒过)
+  say "等待 4 个微服务全部 Ready(冷启动约 50~90s,已就绪则跳过)"
+  local ready=0
+  for _ in $(seq 1 48); do   # 最多等 240s
+    ready=$(kubectl get deploy -n "$NS" -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.availableReplicas}{"\n"}{end}' 2>/dev/null \
+      | awk '$1 ~ /-service$/ && $2 >= 1 {c++} END{print c+0}')
+    [ "$ready" -ge 4 ] && break
+    sleep 5
+  done
+  if [ "$ready" -ge 4 ]; then ok "4 个服务均已 Ready";
+  else bad "240s 内未等到 4 个服务 Ready(当前 $ready/4),请先排查 Pod 状态: kubectl get pods -n $NS"; exit 1; fi
+
+  # Ingress/Service endpoints 生效需要几秒,轮询入口
   say "预检:入口连通性 $BASE_URL"
-  curl_req "$BASE_URL/api/flights/search?page=1&size=1"
-  if [ "$CURL_CODE" = "200" ]; then ok "入口可达(HTTP $CURL_CODE)";
-  else bad "入口不可达(HTTP $CURL_CODE),请用 BASE_URL 覆盖或先检查部署"; exit 1; fi
+  local code=000 i=0
+  while [ "$i" -lt 18 ]; do
+    curl_req "$BASE_URL/api/flights/search?page=1&size=1"
+    code="$CURL_CODE"
+    [ "$code" = "200" ] && break
+    sleep 5; i=$((i+1))
+  done
+  if [ "$code" = "200" ]; then ok "入口可达(HTTP $code)";
+  else bad "90s 内入口仍不可达(HTTP $code),请用 BASE_URL 覆盖或先检查部署/Ingress"; exit 1; fi
   pause
 }
 
