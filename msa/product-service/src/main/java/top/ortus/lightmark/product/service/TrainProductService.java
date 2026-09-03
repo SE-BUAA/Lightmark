@@ -245,6 +245,9 @@ public class TrainProductService {
                 if (stock <= 0) {
                     stock = seats.values().stream().mapToInt(Integer::intValue).sum();
                 }
+                // Normalize MCP time names to the fields consumed by the frontend.
+                if (!x.containsKey("depart_time")) x.put("depart_time", x.get("start_time"));
+                if (!x.containsKey("arrive_time")) x.put("arrive_time", x.get("arrival_time"));
                 Map<String, Double> prices = new LinkedHashMap<>(pricesByTrainCode.getOrDefault(
                         String.valueOf(x.getOrDefault("train_code", x.getOrDefault("train_no", ""))), Map.of()));
                 if (prices.isEmpty()) {
