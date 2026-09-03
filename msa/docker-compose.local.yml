@@ -103,6 +103,12 @@ services:
       JWT_ISSUER: ${JWT_ISSUER:-lightmark}
       JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-120}
       LIGHTMARK_SERVICES_USER_URL: http://user-service:8081
+      # AI 密钥（对话/智能行程），读取仓库根 .env
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      LIGHTMARK_AI_API_KEY: ${LIGHTMARK_AI_API_KEY:-}
+      LIGHTMARK_AI_API_URL: ${LIGHTMARK_AI_API_URL:-}
+      LIGHTMARK_AI_MODEL: ${LIGHTMARK_AI_MODEL:-}
 
   # 12306 MCP 服务（火车票查询数据源）：一键拉镜像运行，本地自给自足
   # 端口映射 9000(宿主) -> 8000(容器)，与项目默认调用地址 http://<host>:9000/mcp 一致
