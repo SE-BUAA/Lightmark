@@ -81,7 +81,7 @@ AB_PID=$!
 
 echo "[INFO] 等待扩容（最多 ${SCALE_UP_TIMEOUT}s，每 2s 采样一次）..."
 SCALED_UP=0
-for _ in $(seq 1 $((SCALE_UP_TIMEOUT / 2))); do
+for step in $(seq 1 $((SCALE_UP_TIMEOUT / 2))); do
   sleep 2
   timeline
   CUR="$(hpa_replicas | cut -d/ -f1)"
@@ -116,8 +116,10 @@ $KUBECTL get pods -n "$NAMESPACE" -l "app=lightmark-${SERVICE}" -o wide | tee "$
 echo ""
 echo "========== 阶段4: 降压，等待缩容（最多 ${SCALE_DOWN_TIMEOUT}s） =========="
 SCALED_DOWN=0
-for _ in $(seq 1 $((SCALE_DOWN_TIMEOUT / 5))); do
+TICK=0
+for step in $(seq 1 $((SCALE_DOWN_TIMEOUT / 5))); do
   sleep 5
+  TICK=$((TICK + 1))
   CUR="$(hpa_replicas | cut -d/ -f1)"
   if [ "${CUR:-0}" -le "$MIN_REPLICAS" ]; then
     SCALED_DOWN=1
@@ -125,8 +127,10 @@ for _ in $(seq 1 $((SCALE_DOWN_TIMEOUT / 5))); do
     echo "[OK] 已缩容回 min=$MIN_REPLICAS"
     break
   fi
-  if [ $((_ % 12)) -eq 0 ]; then
+  # 每 60s 打一次心跳，避免等待期无输出（用独立计数器，避免部分 shell 对 $((_ % n)) 的兼容问题）
+  if [ $((TICK % 12)) -eq 0 ]; then
     timeline
+    echo "[INFO] 仍在等待缩容（当前 ${CUR:-?} 副本，已等 $((TICK * 5))s）..."
   fi
 done
 if [ "$SCALED_DOWN" = 0 ]; then
