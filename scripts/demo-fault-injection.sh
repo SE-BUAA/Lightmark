@@ -165,11 +165,32 @@ preflight() {
   pause
 }
 
+# ---------- 数据准备:直灌一条种子游记(绕开前端发布模块,仅作演示数据) ----------
+# 演示链路仍是真实 HTTP:GET /api/posts -> content-service 调 user-service 补作者昵称
+db_seed_post() {  # 成功返回 0
+  local pw out uid nick sql
+  say "社区无游记,准备种子数据:直接向内容库写入一条游记(作者取真实用户,不经前端模块)"
+  pw=$(kubectl exec -n "$NS" deploy/lightmark-mysql -- printenv MYSQL_ROOT_PASSWORD 2>/dev/null | tr -d '\r\n')
+  if [ -z "$pw" ]; then note "无法从 mysql Pod 获取 MYSQL_ROOT_PASSWORD(envFrom lightmark-secrets)"; return 1; fi
+  sql="select u.id, ifnull(u.nickname,'') from lightmark_user.user u where ifnull(u.nickname,'') <> '' and u.nickname <> '旅行用户' order by u.id limit 10"
+  out=$(kubectl exec -n "$NS" deploy/lightmark-mysql -- env MYSQL_PWD="$pw" mysql -uroot -N -e "$sql" 2>/dev/null)
+  uid=$(printf '%s\n' "$out" | head -1 | cut -f1)
+  nick=$(printf '%s\n' "$out" | head -1 | cut -f2)
+  [ -z "$uid" ] && { note "lightmark_user.user 中未找到可用作者(需有非空昵称)"; return 1; }
+  sql="insert into lightmark_content.post(user_id,title,content,images,likes,comments_count,status) values($uid,'故障演示:昵称降级验证','种子游记:验证 user 服务故障时作者昵称降级为旅行用户的备用结果。',NULL,0,0,1)"
+  if kubectl exec -n "$NS" deploy/lightmark-mysql -- env MYSQL_PWD="$pw" mysql -uroot -e "$sql" >/dev/null 2>&1; then
+    note "已写入种子游记:作者 user_id=$uid(nickname='$nick')"
+    return 0
+  fi
+  note "写入失败,请检查 lightmark_content.post 表结构/权限"
+  return 1
+}
+
 # ---------- 场景 A:user-service 下线 -> 备用结果 + 隔离 ----------
 scenario_a() {
   say "========== 场景 A:停 user-service —— 备用结果(昵称降级)+ 故障隔离 =========="
 
-  # A0 基线:找一个有作者的游记;没有则可用 ADMIN_TOKEN 自动发布一篇
+  # A0 基线:找一个有作者的游记;没有则自动直灌种子游记(或 ADMIN_TOKEN 发帖)
   local pid="" base_nick=""
   curl_req "$BASE_URL/api/posts?page=1&size=3"
   if [ "$CURL_CODE" = "200" ]; then
@@ -177,8 +198,15 @@ scenario_a() {
     base_nick=$(jget "data.list.0.author.nickname")
   fi
   if [ -z "$pid" ] || [ "$pid" = "0" ]; then
+    if db_seed_post; then
+      curl_req "$BASE_URL/api/posts?page=1&size=3"
+      pid=$(jget "data.list.0.id")
+      base_nick=$(jget "data.list.0.author.nickname")
+    fi
+  fi
+  if [ -z "$pid" ] || [ "$pid" = "0" ]; then
     if [ -n "${ADMIN_TOKEN:-}" ]; then
-      say "社区无游记,使用 ADMIN_TOKEN 自动发布一篇演示游记"
+      say "自动直灌失败,尝试用 ADMIN_TOKEN 经接口发布一篇"
       curl_req "$BASE_URL/api/posts" \
         '{"title":"故障注入演示:昵称降级验证","content":"这是一篇用于验证备用结果(昵称降级)的演示游记。"}' \
         "Authorization: Bearer ${ADMIN_TOKEN}"
@@ -194,7 +222,7 @@ scenario_a() {
     fi
   fi
   if [ -z "$pid" ] || [ "$pid" = "0" ]; then
-    note "社区仍无游记:① 先在浏览器登录前端发布一篇游记再重跑;② 或 export ADMIN_TOKEN=<登录后拿到的JWT> 后重跑(脚本自动发帖)"
+    bad "仍无可用游记数据:请检查 mysql Pod 可执行性(kubectl exec)与 lightmark_content.post 表"
     return 1
   fi
   ok "基线:游记 id=$pid,作者昵称='${base_nick}'"
