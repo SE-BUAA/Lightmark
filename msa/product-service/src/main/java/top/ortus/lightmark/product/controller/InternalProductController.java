@@ -1,6 +1,7 @@
 package top.ortus.lightmark.product.controller;
 
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,6 +25,7 @@ public class InternalProductController {
     private final FlightProductService service;
     private final JdbcTemplate jdbc;
 
+    @Autowired
     public InternalProductController(FlightProductService service, JdbcTemplate jdbc) {
         this.service = service;
         this.jdbc = jdbc;
