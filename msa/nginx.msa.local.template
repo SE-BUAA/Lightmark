@@ -57,6 +57,11 @@ server {
     }
 
     # ===== order-service (8083)：长前缀优先于 product 的 /api/flights 等 =====
+    # 用户中心"我的订单"(订单域直供;长前缀优先于 user-service 的 /api/user)
+    location /api/user/orders {
+        proxy_pass http://order-service:8083;
+        include /etc/nginx/proxy-common.conf;
+    }
     location /api/flights/order {
         proxy_pass http://order-service:8083;
         include /etc/nginx/proxy-common.conf;

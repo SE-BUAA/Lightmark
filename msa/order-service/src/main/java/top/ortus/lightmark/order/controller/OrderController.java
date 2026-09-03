@@ -158,6 +158,17 @@ public class OrderController {
         return ApiResponse.ok(orderService.listOrders(currentUserId, type, status, page, size));
     }
 
+    /** 用户中心"我的订单"(单体遗留入口,由订单域直接提供,返回结构同 /api/orders) */
+    @GetMapping("/user/orders")
+    public ApiResponse<Map<String, Object>> listUserCenterOrders(@RequestHeader(value = "Authorization", required = false) String authorization,
+                                                                 @RequestParam(required = false) Long userId,
+                                                                 @RequestParam(required = false) String type,
+                                                                 @RequestParam(required = false) Integer status,
+                                                                 @RequestParam(defaultValue = "1") Integer page,
+                                                                 @RequestParam(defaultValue = "10") Integer size) {
+        return listOrders(authorization, userId, type, status, page, size);
+    }
+
     @PostMapping("/orders/{orderNo}/cancel")
     public ApiResponse<Void> cancelOrder(@PathVariable String orderNo) {
         orderService.cancelOrder(orderNo);
