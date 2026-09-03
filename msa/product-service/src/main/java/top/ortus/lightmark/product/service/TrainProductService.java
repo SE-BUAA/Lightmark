@@ -247,6 +247,9 @@ public class TrainProductService {
                 }
                 Map<String, Double> prices = new LinkedHashMap<>(pricesByTrainCode.getOrDefault(
                         String.valueOf(x.getOrDefault("train_code", x.getOrDefault("train_no", ""))), Map.of()));
+                if (prices.isEmpty()) {
+                    prices.putAll(defaultPrices(seats.keySet(), String.valueOf(x.getOrDefault("train_no", ""))));
+                }
                 Double price = number(x.get("price"));
                 if (price == null || price <= 0) {
                     price = prices.values().stream().filter(v -> v != null && v > 0).min(Double::compareTo).orElse(null);
@@ -292,10 +295,31 @@ public class TrainProductService {
         Map<String, Map<String, Double>> result = new LinkedHashMap<>();
         for (Object row : list) {
             if (!(row instanceof Map<?, ?> raw)) continue;
-            String code = String.valueOf(raw.getOrDefault("train_code", raw.getOrDefault("train_no", "")));
+            Object codeValue = raw.get("train_code");
+            if (codeValue == null) codeValue = raw.get("train_no");
+            String code = String.valueOf(codeValue == null ? "" : codeValue);
             if (!code.isBlank()) result.put(code, normalizePrices(raw.get("prices")));
         }
         return result;
+    }
+
+    private Map<String, Double> defaultPrices(Iterable<String> seats, String trainNo) {
+        boolean conventional = trainNo.matches("[KTZY].*");
+        Map<String, Double> prices = new LinkedHashMap<>();
+        for (String seat : seats) {
+            double value = switch (seat) {
+                case "商务座" -> 900.0;
+                case "一等座" -> conventional ? 0.0 : 480.0;
+                case "二等座" -> conventional ? 0.0 : 300.0;
+                case "软卧" -> 420.0;
+                case "硬卧" -> 270.0;
+                case "硬座" -> 150.0;
+                case "无座" -> 150.0;
+                default -> 0.0;
+            };
+            if (value > 0) prices.put(seat, value);
+        }
+        return prices;
     }
 
     private Map<String, Double> normalizePrices(Object value) {
