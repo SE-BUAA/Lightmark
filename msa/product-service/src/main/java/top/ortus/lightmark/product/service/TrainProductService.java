@@ -62,7 +62,8 @@ public class TrainProductService {
             args.put("middle_station", "");
         }
         Map<String, Object> response = call(transfer ? "query-transfer" : "query-tickets", args);
-        return tickets(response);
+        Map<String, Object> priceResponse = transfer ? Map.of() : call("query_ticket_price", args);
+        return tickets(response, pricesByTrainCode(priceResponse));
     }
 
     public List<Map<String, Object>> calendar(Map<String, Object> body) {
@@ -220,6 +221,10 @@ public class TrainProductService {
     // ==================== 结果映射 ====================
 
     List<TrainTicketDTO> tickets(Map<String, Object> response) {
+        return tickets(response, Map.of());
+    }
+
+    private List<TrainTicketDTO> tickets(Map<String, Object> response, Map<String, Map<String, Double>> pricesByTrainCode) {
         Object rows = response.get("tickets");
         if (!(rows instanceof List<?>)) {
             rows = response.get("trains");
@@ -240,7 +245,12 @@ public class TrainProductService {
                 if (stock <= 0) {
                     stock = seats.values().stream().mapToInt(Integer::intValue).sum();
                 }
+                Map<String, Double> prices = new LinkedHashMap<>(pricesByTrainCode.getOrDefault(
+                        String.valueOf(x.getOrDefault("train_code", x.getOrDefault("train_no", ""))), Map.of()));
                 Double price = number(x.get("price"));
+                if (price == null || price <= 0) {
+                    price = prices.values().stream().filter(v -> v != null && v > 0).min(Double::compareTo).orElse(null);
+                }
                 out.add(new TrainTicketDTO(
                         String.valueOf(x.getOrDefault("id", x.getOrDefault("train_no", ""))),
                         String.valueOf(x.getOrDefault("name", x.getOrDefault("train_no", ""))),
@@ -250,7 +260,7 @@ public class TrainProductService {
                         List.of(),
                         x,
                         seats,
-                        Map.of()));
+                        prices));
             }
         }
         return out;
@@ -274,6 +284,28 @@ public class TrainProductService {
         } catch (Exception e) {
             return 0;
         }
+    }
+
+    private Map<String, Map<String, Double>> pricesByTrainCode(Map<String, Object> response) {
+        Object rows = response.get("data");
+        if (!(rows instanceof List<?> list)) return Map.of();
+        Map<String, Map<String, Double>> result = new LinkedHashMap<>();
+        for (Object row : list) {
+            if (!(row instanceof Map<?, ?> raw)) continue;
+            String code = String.valueOf(raw.getOrDefault("train_code", raw.getOrDefault("train_no", "")));
+            if (!code.isBlank()) result.put(code, normalizePrices(raw.get("prices")));
+        }
+        return result;
+    }
+
+    private Map<String, Double> normalizePrices(Object value) {
+        if (!(value instanceof Map<?, ?> raw)) return Map.of();
+        Map<String, Double> prices = new LinkedHashMap<>();
+        raw.forEach((key, item) -> {
+            double price = number(item) == null ? 0 : number(item);
+            if (price > 0) prices.put(String.valueOf(key), price);
+        });
+        return prices;
     }
 
     @SuppressWarnings("unchecked")
