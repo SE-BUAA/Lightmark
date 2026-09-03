@@ -23,7 +23,7 @@ import java.util.List;
 public class ObjectStorageService {
 
     static final String LATEST_OBJECT_STORAGE_BASE_URL =
-            "https://objectstorage.ap-tokyo-1.oraclecloud.com/p/5R94ZnD93i9YTCorrhHEGgkXcgT2tu6J_BD46w3gCc3oJeUa-r-C82LOvxrDvMxE/n/nrrguvtqppqi/b/ortus-bucket/o/";
+            "https://objectstorage.ap-tokyo-1.oraclecloud.com/p/gpXawfcE00rWWXvf7bRiwadiSeQjLY_ceX-7BGAuQpj0ayMJofdnp5mLD2cFzdNV/n/nrrguvtqppqi/b/ortus-bucket/o/";
 
     private final HttpClient httpClient;
     private final List<String> uploadBaseUrls;
