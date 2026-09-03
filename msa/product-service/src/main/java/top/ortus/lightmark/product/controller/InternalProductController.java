@@ -29,6 +29,11 @@ public class InternalProductController {
         this.jdbc = jdbc;
     }
 
+    /** Backward-compatible constructor for unit tests and embedders. */
+    public InternalProductController(FlightProductService service) {
+        this(service, null);
+    }
+
     @GetMapping("/{id}") public ApiResponse<ProductDTO> product(@PathVariable String id) { return ApiResponse.ok(service.product(id)); }
 
     /** 后台看板:销量 Top N 产品(口径同单体 hotProducts;字面路径优先于 /{id})。 */
