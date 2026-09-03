@@ -106,8 +106,8 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ghcr.io/${{ github.repository }}/${{ matrix.service }}-service:${{ matrix.service }}-service-${{ env.IMAGE_VERSION }}
-            ghcr.io/${{ github.repository }}/${{ matrix.service }}-service:sha-${{ github.sha }}
+            ghcr.io/${{ steps.lowerrepo.outputs.repo }}/${{ matrix.service }}-service:${{ matrix.service }}-service-${{ env.IMAGE_VERSION }}
+            ghcr.io/${{ steps.lowerrepo.outputs.repo }}/${{ matrix.service }}-service:sha-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -121,6 +121,9 @@ jobs:
     steps:
       - name: 取代码
         uses: actions/checkout@v5
+      - name: 计算镜像仓库名（GHCR 要求全小写）
+        id: lowerrepo
+        run: echo "repo=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
       - name: 安装 Node.js 20
         uses: actions/setup-node@v5
         with:
@@ -158,8 +161,8 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ghcr.io/${{ github.repository }}/frontend:frontend-${{ env.IMAGE_VERSION }}
-            ghcr.io/${{ github.repository }}/frontend:sha-${{ github.sha }}
+            ghcr.io/${{ steps.lowerrepo.outputs.repo }}/frontend:frontend-${{ env.IMAGE_VERSION }}
+            ghcr.io/${{ steps.lowerrepo.outputs.repo }}/frontend:sha-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

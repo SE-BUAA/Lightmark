@@ -47,7 +47,7 @@ docker compose -f docker-compose.local.yml down                   # 停止
 | --- | --- | --- |
 | `DB_HOST` / `DB_PORT` | `150.230.223.11` / `3306` | 服务器数据库地址 |
 | `DB_USER` / `DB_PASSWORD` | `se` / 空 | 应用账号（需对 4 个 schema 有权限） |
-| `JWT_SECRET` | `local-msa-dev-secret` | 4 个服务共享的 JWT 密钥（生产必须注入真实值） |
+| `JWT_SECRET` | `local-msa-dev-secret-0123456789abcdef` | 4 个服务共享的 JWT 密钥（生产必须注入真实值） |
 | `USER_DB_NAME` 等 | `lightmark_user` 等 | 各服务 schema 名 |
 | `DB_ADMIN_USER` / `DB_ADMIN_PASSWORD` | `root` / 空 | 建库引导用的管理员账号 |
 | `SKIP_DB_BOOTSTRAP=1` | - | 跳过建库引导 |
