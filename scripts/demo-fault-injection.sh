@@ -317,7 +317,8 @@ scenario_a() {
 # ---------- 场景 B:product-service 故障 -> 超时重试 + 熔断 + 恢复自愈 ----------
 scenario_b() {
   say "========== 场景 B:product-service 故障 —— 超时重试 + 熔断 + 自愈 =========="
-  local pid="" FREEZE=0
+  local pid=""
+  local FREEZE="${FREEZE:-0}"
 
   # B0 基线:挑一条有库存的机票,预览成功
   curl_req "$BASE_URL/api/flights/search?page=1&size=6"
@@ -344,31 +345,36 @@ PY
   else bad "基线预览失败 HTTP $CURL_CODE,msg=$(jget msg),中止场景 B"; return 1; fi
   pause
 
-  # 故障注入:优先冻结 Java 进程(SIGSTOP)——Pod 保留、TCP 可连但无响应,
-  # 让订单侧真实走到 3s 读超时;冻结失败(找不到进程/未真正冻结)时回退为暂停 HPA+缩容
-  say "故障注入:冻结 product-service 的 Java 进程(kill -STOP,保留 Pod 制造 3s 超时)"
-  touch "$STATEDIR/down-product-service"
-  local frozen_pid=""
-  frozen_pid=$(svc_freeze product-service)
-  if [ -n "$frozen_pid" ]; then
-    # 验证确已冻结:2 次 1s 探测都应无响应(000/超时);若仍 200 说明冻结失败
-    local alive=0 k code2
-    for k in 1 2; do
-      code2=$(curl -s --max-time 1 -o /dev/null -w '%{http_code}' "$BASE_URL/api/flights/search?page=1&size=1" 2>/dev/null)
-      [ "$code2" = "200" ] && alive=$((alive+1))
-    done
-    if [ "$alive" = "0" ]; then
-      FREEZE=1
-      touch "$STATEDIR/freeze-product-service"
-      ok "已冻结 Java 进程($frozen_pid),探测无响应;订单侧将先经历 3s 读超时,熔断生效后快速失败"
-      sleep 3
+  # 故障注入:默认暂停 HPA + 缩容到 0(连接级失败 + 重试 + 熔断);
+  # 可选 FREEZE=1 尝试冻结 Java 进程(部分运行时对 init 的 STOP 不生效,失败自动回退)
+  if [ "$FREEZE" = "1" ]; then
+    say "故障注入(实验):冻结 product-service 的 Java 进程(kill -STOP,保留 Pod 制造 3s 超时)"
+    touch "$STATEDIR/down-product-service"
+    local frozen_pid=""
+    frozen_pid=$(svc_freeze product-service)
+    if [ -n "$frozen_pid" ]; then
+      local alive=0 k code2
+      for k in 1 2; do
+        code2=$(curl -s --max-time 1 -o /dev/null -w '%{http_code}' "$BASE_URL/api/flights/search?page=1&size=1" 2>/dev/null)
+        [ "$code2" = "200" ] && alive=$((alive+1))
+      done
+      if [ "$alive" = "0" ]; then
+        FREEZE=1
+        touch "$STATEDIR/freeze-product-service"
+        ok "已冻结 Java 进程($frozen_pid),探测无响应;订单侧将先经历 3s 读超时,熔断生效后快速失败"
+        sleep 3
+      else
+        note "冻结后探测仍 $alive/2 次 200(进程未真正冻结),回退:暂停 HPA 并缩容到 0"
+        svc_unfreeze product-service >/dev/null 2>&1
+        svc_down product-service || return 1
+      fi
     else
-      note "冻结后探测仍 $alive/2 次 200(进程未真正冻结),回退:暂停 HPA 并缩容到 0"
-      svc_unfreeze product-service >/dev/null 2>&1
+      note "未定位到 Java 进程,回退:暂停 HPA 并缩容到 0"
       svc_down product-service || return 1
     fi
   else
-    note "未定位到 Java 进程,回退:暂停 HPA 并缩容到 0"
+    say "故障注入:暂停 HPA 并缩容 product-service 到 0(连接拒绝 -> 重试 -> 熔断)"
+    touch "$STATEDIR/down-product-service"
     svc_down product-service || return 1
   fi
 
