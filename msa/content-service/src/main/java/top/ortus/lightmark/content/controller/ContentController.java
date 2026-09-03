@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.MediaType;
@@ -42,6 +43,7 @@ public class ContentController {
     /** 会话上下文暂存内存，避免把 AI 对话表引入 content 数据边界。 */
     private final Map<String, List<Map<String, String>>> chatContexts = new ConcurrentHashMap<>();
 
+    @Autowired
     public ContentController(JdbcTemplate jdbc, ObjectMapper mapper, JwtTokenService jwt,
                              UserProfileClient userProfileClient, ContentAiService aiService,
                              CommunityImageStorageService imageStorage) {
