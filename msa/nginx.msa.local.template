@@ -141,4 +141,8 @@ server {
         proxy_pass http://content-service:8084;
         include /etc/nginx/proxy-common.conf;
     }
+    location /api/upload/image {
+        proxy_pass http://content-service:8084;
+        include /etc/nginx/proxy-common.conf;
+    }
 }
