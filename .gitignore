@@ -17,3 +17,6 @@ uninstall-server.sh
 
 .m2
 
+
+# 压测/拆分产物（本地原始数据，提交时手动归档）
+artifacts/
