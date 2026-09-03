@@ -1,5 +1,6 @@
 package top.ortus.lightmark.user.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -22,11 +23,16 @@ import java.util.List;
 public class ObjectStorageService {
 
     static final String LATEST_OBJECT_STORAGE_BASE_URL =
-            "https://objectstorage.ap-tokyo-1.oraclecloud.com/p/5R94ZnD93i9YTCorrhHEGgkXcgT2tu6J_BD46w3gCc3oJeUa-r-C82LOvxrDvMxE/n/nrrguvtqppqi/b/ortus-bucket/o/";
+            "https://objectstorage.ap-tokyo-1.oraclecloud.com/p/gpXawfcE00rWWXvf7bRiwadiSeQjLY_ceX-7BGAuQpj0ayMJofdnp5mLD2cFzdNV/n/nrrguvtqppqi/b/ortus-bucket/o/";
 
     private final HttpClient httpClient;
     private final List<String> uploadBaseUrls;
 
+    /**
+     * 主构造器：类中存在多个构造器（含包级测试构造器）时，
+     * Spring 无法自动选择，必须显式 @Autowired，否则报 "No default constructor found"。
+     */
+    @Autowired
     public ObjectStorageService(@Value("${lightmark.object-storage.base-url:}") String baseUrl) {
         this(baseUrl, LATEST_OBJECT_STORAGE_BASE_URL);
     }

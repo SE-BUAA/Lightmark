@@ -276,6 +276,14 @@ for svc in "${SERVICES[@]}"; do
     printf 'PRODUCT_SERVICE_BASE_URL=%s\n' "$PU" >> "$SECRET_FILE"
     printf 'USER_SERVICE_BASE_URL=%s\n' "$UU" >> "$SECRET_FILE"
   fi
+  if [ "$svc" = "content" ]; then
+    # AI 能力（对话/智能行程）需要密钥；ContentAiService 直接读 DEEPSEEK_API_KEY 环境变量
+    for k in DEEPSEEK_API_KEY OPENAI_API_KEY AI_API_URL AI_API_KEY AI_MODEL \
+             LIGHTMARK_AI_API_URL LIGHTMARK_AI_API_KEY LIGHTMARK_AI_MODEL LIGHTMARK_DEEPSEEK_BASE_URL; do
+      v="$(get_env "$k")"
+      [ -n "$v" ] && printf '%s=%s\n' "$k" "$v" >> "$SECRET_FILE"
+    done
+  fi
   $KUBECTL create secret generic "${svc}-service-secrets" --from-env-file="$SECRET_FILE" \
     -n "$NAMESPACE" --dry-run=client -o yaml | $KUBECTL apply -f -
   echo "[OK] Secret ${svc}-service-secrets 已更新（DB: ${H}:${P}/${N}，用户 ${U}）"

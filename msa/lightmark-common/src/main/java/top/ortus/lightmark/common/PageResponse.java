@@ -65,4 +65,16 @@ public class PageResponse<T> {
     public void setItems(List<T> items) {
         this.list = items;
     }
+
+    /**
+     * records 别名：单体后端分页字段为 records，前端酒店等页面读取 records；
+     * MSA 的 list 字段被机票等页面使用。两者同时输出，兼容两类消费方。
+     */
+    public List<T> getRecords() {
+        return list;
+    }
+
+    public void setRecords(List<T> records) {
+        this.list = records;
+    }
 }

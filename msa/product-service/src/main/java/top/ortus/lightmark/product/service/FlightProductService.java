@@ -135,8 +135,107 @@ public class FlightProductService {
         p.setStatus(number(row, "status", "STATUS")); p.setExtra(text(row, "extra", "EXTRA"));
         p.setCategory_tags(text(row, "category_tags", "CATEGORY_TAGS")); return p;
     }
-    private boolean matches(ProductDTO p, Map<String, String> params) { return equalsField(p, params, "departureCity", "departure_city") && equalsField(p, params, "arrivalCity", "arrival_city"); }
-    private boolean equalsField(ProductDTO p, Map<String, String> params, String... keys) { String wanted = value(params, keys[0]); if (wanted == null || wanted.isBlank()) return true; String actual = text(p, keys); return wanted.equalsIgnoreCase(actual); }
+    // 多机场城市统一城市码（与单体 FlightSearchService.AIRPORT_CITY_CODES 一致）：
+    // 前端按机场选项发送机场码(PEK/PKX/NAY)，数据里存城市码(BJS)，必须归一化后比较。
+    private static final Map<String, String> AIRPORT_CITY_CODES = Map.ofEntries(
+            Map.entry("PEK", "BJS"),
+            Map.entry("PKX", "BJS"),
+            Map.entry("NAY", "BJS"),
+            Map.entry("SHA", "SHA"),
+            Map.entry("PVG", "SHA"),
+            Map.entry("CTU", "CTU"),
+            Map.entry("TFU", "CTU")
+    );
+
+    private boolean matches(ProductDTO p, Map<String, String> params) {
+        // 路由字段：多 key 兼容(机场码/城市码/城市名/机场名)，城市码归一化 + 文本包含匹配
+        return matchesRoute(p, params, "departureCity", "departureCity", "departure_city", "departureAirport",
+                "departure_airport", "departureAirportCode", "departure_airport_code", "departure")
+                && matchesRoute(p, params, "arrivalCity", "arrivalCity", "arrival_city", "arrivalAirport",
+                "arrival_airport", "arrivalAirportCode", "arrival_airport_code", "arrival");
+    }
+
+    /** 路由匹配：期望值(机场码/城市码/中文名)与 extra 中任一字段按城市码归一化或包含关系命中即匹配。 */
+    private boolean matchesRoute(ProductDTO p, Map<String, String> params, String paramKey, String... extraKeys) {
+        String wanted = value(params, paramKey);
+        if (wanted == null || wanted.isBlank()) {
+            return true;
+        }
+        String normalized = normalize(wanted);
+        List<String> wantedCityCodes = cityCodes(normalized);
+        for (String extraKey : extraKeys) {
+            for (String actual : textValues(p, extraKey)) {
+                if (actual == null || actual.isBlank()) {
+                    continue;
+                }
+                // 1) 归一化后城市码相等：BJS == BJS / PEK(→BJS) == BJS
+                List<String> actualCityCodes = cityCodes(normalize(actual));
+                if (actualCityCodes.stream().anyMatch(wantedCityCodes::contains)) {
+                    return true;
+                }
+                // 2) 文本包含：北京 vs 北京首都/北京大兴
+                if (actual.contains(normalized) || normalized.contains(actual)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /** 把「城市码/机场码/中文名」都换算成候选城市码集合。 */
+    private List<String> cityCodes(String token) {
+        List<String> codes = new ArrayList<>();
+        if (token.isBlank()) {
+            return codes;
+        }
+        String upper = token.toUpperCase(Locale.ROOT);
+        if (upper.matches("[A-Z]{2,4}")) {
+            codes.add(AIRPORT_CITY_CODES.getOrDefault(upper, upper));
+        } else {
+            codes.add(token);
+        }
+        return codes;
+    }
+
+    /** 取 extra JSON 中某 key 的字符串值(兼容字符串/数组元素/嵌套 map 的 name)。 */
+    private List<String> textValues(ProductDTO p, String key) {
+        List<String> values = new ArrayList<>();
+        try {
+            JsonNode n = objectMapper.readTree(p.getExtra());
+            JsonNode node = n == null ? null : n.get(key);
+            if (node == null) {
+                // 兼容带下划线别名（调用方已传全，此处兜底大小写变体）
+                return values;
+            }
+            if (node.isTextual()) {
+                values.add(node.asText());
+            } else if (node.isArray()) {
+                node.forEach(item -> values.add(item.isTextual() ? item.asText() : item.toString()));
+            } else if (node.isObject()) {
+                if (node.hasNonNull("name")) values.add(node.get("name").asText());
+                if (node.hasNonNull("type")) values.add(node.get("type").asText());
+                values.add(node.toString());
+            } else {
+                values.add(node.asText());
+            }
+        } catch (Exception ignored) {
+            // 忽略无法解析的 extra
+        }
+        return values;
+    }
+
+    private String normalize(String token) {
+        return token == null ? "" : token.trim();
+    }
+
+    private boolean equalsField(ProductDTO p, Map<String, String> params, String... keys) {
+        String wanted = value(params, keys[0]);
+        if (wanted == null || wanted.isBlank()) {
+            return true;
+        }
+        String actual = text(p, keys);
+        return wanted.equalsIgnoreCase(actual == null ? "" : actual);
+    }
     private Comparator<ProductDTO> comparator(Map<String, String> params) { return "desc".equalsIgnoreCase(value(params, "sortOrder")) ? Comparator.comparing(ProductDTO::getPrice, Comparator.nullsLast(Comparator.reverseOrder())) : Comparator.comparing(ProductDTO::getPrice, Comparator.nullsLast(Comparator.naturalOrder())); }
     private String text(ProductDTO p, String... keys) { try { JsonNode n = objectMapper.readTree(p.getExtra()); for (String k : keys) if (n != null && n.hasNonNull(k)) return n.get(k).asText(); } catch (Exception ignored) { } return null; }
     private String text(Map<String, Object> row, String... keys) { Object value = first(row, keys); return value == null ? null : value.toString(); }
