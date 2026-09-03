@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.http.MediaType;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.transaction.annotation.Transactional;
 import top.ortus.lightmark.common.ApiResponse;
 import top.ortus.lightmark.common.PageResponse;
 import top.ortus.lightmark.common.exception.ApiException;
@@ -109,6 +110,7 @@ public class ContentController {
     }
 
     @PostMapping({"/community/posts", "/posts"})
+    @Transactional
     public ApiResponse<Map<String, Object>> createPost(@RequestHeader("Authorization") String authorization,
                                                         @RequestBody Map<String, Object> body) {
         long userId = requiredUserId(authorization);
@@ -116,12 +118,13 @@ public class ContentController {
         if (!StringUtils.hasText(title)) throw new ApiException(400, "游记标题不能为空");
         String content = text(body, "content");
         String images = json(body.get("images"));
-        KeyHolder keys = new GeneratedKeyHolder();
         jdbc.update(c -> {
             PreparedStatement ps = c.prepareStatement("insert into post(user_id,title,content,images,likes,comments_count,status) values(?,?,?, ?,0,0,1)", Statement.RETURN_GENERATED_KEYS);
             ps.setLong(1, userId); ps.setString(2, title.trim()); ps.setString(3, content); ps.setString(4, images); return ps;
-        }, keys);
-        return ApiResponse.ok(post(keys.getKey().longValue()));
+        });
+        Long postId = jdbc.queryForObject("select last_insert_id()", Long.class);
+        if (postId == null || postId <= 0) throw new ApiException(500, "游记发布失败");
+        return ApiResponse.ok(post(postId));
     }
 
     @PutMapping({"/community/posts/{id}", "/posts/{id}"})
